@@ -59,14 +59,23 @@ TESTING = env_bool("DJANGO_TESTING", False)
 # Etapa de build (collectstatic no Docker): não há banco nem segredos disponíveis.
 BUILDING = env_bool("DJANGO_BUILD", False)
 
-SECRET_KEY = env("DJANGO_SECRET_KEY")
-if not SECRET_KEY:
-    if DEBUG or TESTING or BUILDING:
-        SECRET_KEY = "dev-only-insecure-key-never-use-in-production"
-    else:
+PRODUCTION = not (DEBUG or TESTING or BUILDING)
+
+if PRODUCTION:
+    # Reporta de uma vez todas as variáveis obrigatórias ausentes (evita um deploy por erro).
+    _missing = []
+    if not env("DJANGO_SECRET_KEY"):
+        _missing.append("DJANGO_SECRET_KEY (gere com: python -c \"import secrets; print(secrets.token_urlsafe(64))\")")
+    if not (env("DATABASE_URL") or env("PGHOST")):
+        _missing.append("DATABASE_URL (no Railway: ${{Postgres.DATABASE_URL}})")
+    if _missing:
         raise ImproperlyConfigured(
-            "DJANGO_SECRET_KEY é obrigatória quando DJANGO_DEBUG=False."
+            "Variáveis de ambiente obrigatórias ausentes em produção (DJANGO_DEBUG=False): "
+            + "; ".join(_missing)
+            + ". Cadastre-as no serviço web do Railway em Variables e faça o redeploy. Veja .env.example."
         )
+
+SECRET_KEY = env("DJANGO_SECRET_KEY") or "dev-only-insecure-key-never-use-in-production"
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]")
 # Railway injeta o domínio público nesta variável.
@@ -79,7 +88,9 @@ CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 if env("RAILWAY_PUBLIC_DOMAIN"):
     CSRF_TRUSTED_ORIGINS.append(f"https://{env('RAILWAY_PUBLIC_DOMAIN')}")
 
-SITE_URL = env("SITE_URL", "http://localhost:8000").rstrip("/")
+_default_site = (f"https://{env('RAILWAY_PUBLIC_DOMAIN')}" if env("RAILWAY_PUBLIC_DOMAIN")
+                 else "http://localhost:8000")
+SITE_URL = (env("SITE_URL") or _default_site).rstrip("/")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
