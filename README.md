@@ -146,8 +146,11 @@ O disco do container no Railway é efêmero. Configure um bucket S3-compatible:
 3. Adicione um **Bucket** e preencha as variáveis `S3_*`.
 4. Cadastre as variáveis do `.env.example` (no mínimo `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`,
    `DJANGO_CSRF_TRUSTED_ORIGINS`, `SITE_URL`, e-mail SMTP e Mercado Pago).
-5. Deploy: o build compila Tailwind e roda `collectstatic`; o *pre-deploy* executa `migrate` e `setup_roles`;
-   o health check usa `/healthz/` (verifica o banco).
+5. Deploy: o build compila Tailwind e roda `collectstatic`; ao iniciar, `scripts/start.sh` executa `migrate` e
+   `setup_roles` e só então sobe o Gunicorn. O health check `/healthz/` responde 503 se o banco estiver
+   inacessível ou houver migração pendente — assim um deploy com banco desatualizado não entra no ar.
+   Se o serviço tiver um *Custom Start Command* ou *Pre-deploy Command* definido no painel do Railway, remova-o
+   para usar o do `railway.json`.
 6. Crie o primeiro administrador: `railway run python manage.py createsuperuser` (ou pelo shell do serviço).
 7. **Domínio próprio**: Settings → Networking → Custom Domain; crie o CNAME indicado no seu DNS e inclua o domínio em
    `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS` e `SITE_URL`. HTTPS é emitido automaticamente.

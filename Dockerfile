@@ -37,4 +37,4 @@ RUN useradd --create-home --uid 1000 appuser && chown -R appuser /app
 USER appuser
 
 EXPOSE 8000
-CMD ["gunicorn", "config.wsgi:application", "-c", "gunicorn.conf.py"]
+CMD ["sh", "scripts/start.sh"]

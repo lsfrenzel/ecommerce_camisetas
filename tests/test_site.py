@@ -26,6 +26,14 @@ class SiteTests(TestCase):
         self.assertContains(self.client.get("/sitemap.xml"), "/produto/")
         self.assertEqual(self.client.get("/healthz/").json()["status"], "ok")
 
+    def test_healthz_fails_when_migrations_pending(self):
+        from unittest import mock
+
+        with mock.patch("django.db.migrations.executor.MigrationExecutor.migration_plan", return_value=[("x", False)]):
+            resp = self.client.get("/healthz/")
+        self.assertEqual(resp.status_code, 503)
+        self.assertEqual(resp.json()["migrations"], "pending")
+
     def test_security_headers(self):
         resp = self.client.get("/")
         self.assertIn("default-src 'self'", resp["Content-Security-Policy"])

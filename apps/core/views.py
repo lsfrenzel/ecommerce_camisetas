@@ -61,13 +61,21 @@ def home(request):
 
 @require_GET
 def healthz(request):
+    from django.db.migrations.executor import MigrationExecutor
+
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        return JsonResponse({"status": "ok"})
     except Exception:  # noqa: BLE001
         logger.exception("Health check: banco indisponível")
         return JsonResponse({"status": "error", "database": "unavailable"}, status=503)
+    # Banco sem migrações aplicadas = site quebrado: o deploy não deve ser considerado saudável.
+    executor = MigrationExecutor(connection)
+    pending = executor.migration_plan(executor.loader.graph.leaf_nodes())
+    if pending:
+        logger.error("Health check: %s migração(ões) pendente(s)", len(pending))
+        return JsonResponse({"status": "error", "migrations": "pending", "count": len(pending)}, status=503)
+    return JsonResponse({"status": "ok"})
 
 
 @require_GET
