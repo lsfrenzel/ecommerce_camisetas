@@ -1,0 +1,42 @@
+{% extends "base.html" %}{% load store %}
+{% block title %}Sua personalização — {{ brand.store_name }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="shell max-w-5xl py-10 lg:py-14">
+  <p class="kicker">Personalização · {{ p.created_at|date:"d/m/Y H:i" }}</p>
+  <div class="mt-3 flex flex-wrap items-center justify-between gap-4">
+    <h1 class="display text-display-md">{{ p.product.name }}</h1>
+    {% status_badge p.status p.get_status_display %}
+  </div>
+  <div class="mt-10 grid gap-10 md:grid-cols-2">
+    <div>
+      {% if p.image %}
+        <div class="grid-texture border border-line p-4"><img src="{% url 'personalization:artwork' p.public_id %}" alt="Arte enviada" class="mx-auto max-h-[420px] w-auto object-contain" loading="lazy"></div>
+        <p class="help mt-2">{{ p.image_width }}×{{ p.image_height }} px{% if p.low_resolution %} · <span class="font-semibold text-orange">abaixo da resolução recomendada</span>{% endif %}</p>
+      {% else %}
+        <div class="grid-texture grid aspect-square place-items-center border border-line"><p class="display px-6 text-center text-2xl" style="color: {{ p.text_color|default:'inherit' }}">{{ p.custom_text }}</p></div>
+      {% endif %}
+    </div>
+    <div class="space-y-6 text-sm">
+      <dl class="grid grid-cols-[140px_1fr] gap-y-2">
+        <dt class="text-muted">Base</dt><dd>{{ p.variant.color.name }} · {{ p.variant.size.name }} · {{ p.variant.get_fit_display }}</dd>
+        <dt class="text-muted">Quantidade</dt><dd>{{ p.quantity }}</dd>
+        <dt class="text-muted">Posição</dt><dd>{{ p.placement.name }}</dd>
+        {% if p.custom_text %}<dt class="text-muted">Texto</dt><dd>{{ p.custom_text }}</dd>{% endif %}
+        {% if p.instructions %}<dt class="text-muted">Instruções</dt><dd>{{ p.instructions|linebreaksbr }}</dd>{% endif %}
+        <dt class="text-muted">Personalização</dt><dd>{{ p.fee|brl }} por peça</dd>
+      </dl>
+      {% if p.admin_notes %}<div class="border-l-4 border-lime bg-surface p-4"><p class="eyebrow mb-1">Mensagem da equipe</p><p>{{ p.admin_notes|linebreaksbr }}</p></div>{% endif %}
+      {% if p.status == 'submitted' or p.status == 'in_review' %}
+        <p class="text-muted">Nossa equipe está analisando sua arte. Você receberá um e-mail quando ela for aprovada para compra.</p>
+      {% elif p.can_add_to_cart %}
+        <form method="post" action="{% url 'personalization:add_to_cart' p.public_id %}">{% csrf_token %}<button class="btn btn-primary">Adicionar ao carrinho {% icon "arrow-right" 18 %}</button></form>
+      {% elif p.status == 'in_cart' %}
+        <a href="{% url 'cart:detail' %}" class="btn btn-dark">Ir para o carrinho</a>
+      {% elif p.status == 'rejected' %}
+        <a href="{% url 'personalization:start' %}" class="btn btn-outline">Enviar nova arte</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

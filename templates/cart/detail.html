@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Carrinho — {{ brand.store_name }}{% endblock %}
+{% block content %}
+<section class="shell py-10 lg:py-14">
+  <h1 class="display text-display-md">Carrinho</h1>
+  <div id="cart-body" class="mt-8">{% include "cart/_cart_body.html" %}</div>
+</section>
+{% endblock %}

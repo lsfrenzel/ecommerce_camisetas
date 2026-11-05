@@ -1,0 +1,67 @@
+{% extends "dashboard/base.html" %}{% load static store %}
+{% block title %}Relatórios{% endblock %}
+{% block heading %}Relatórios{% endblock %}
+{% block head %}<script src="{% static 'vendor/chart.umd.min.js' %}" defer></script>{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <h1 class="display text-3xl">Relatórios</h1>
+  {% include "dashboard/_period.html" %}
+</div>
+<nav class="-mx-4 mt-6 flex gap-1 overflow-x-auto border-b border-line px-4 pb-3 sm:mx-0 sm:px-0" aria-label="Relatórios">
+  {% for key, label in reports %}<a href="{% qs r=key %}" class="chip whitespace-nowrap text-xs {% if key == report %}chip-active{% endif %}">{{ label }}</a>{% endfor %}
+</nav>
+
+<section class="mt-6 grid gap-px border border-line bg-line sm:grid-cols-2 xl:grid-cols-4">
+  <div class="bg-surface p-4"><p class="kicker">Faturamento bruto</p><p class="display mt-2 text-2xl">{{ kpi.gross|brl }}</p></div>
+  <div class="bg-surface p-4"><p class="kicker">Receita (pagos)</p><p class="display mt-2 text-2xl">{{ kpi.revenue|brl }}</p></div>
+  <div class="bg-surface p-4"><p class="kicker">Receita de produtos</p><p class="display mt-2 text-2xl">{{ kpi.product_revenue|brl }}</p></div>
+  {% if can_cost %}<div class="bg-surface p-4"><p class="kicker">Lucro bruto estimado</p><p class="display mt-2 text-2xl">{{ kpi.gross_profit|brl }}</p><p class="help">CMV {{ kpi.cogs|brl }} · tarifas {{ kpi.gateway_fees|brl }}</p></div>
+  {% else %}<div class="bg-surface p-4"><p class="kicker">Ticket médio</p><p class="display mt-2 text-2xl">{{ kpi.avg_ticket|brl }}</p></div>{% endif %}
+</section>
+<p class="help mt-2">Faturamento bruto = pedidos realizados (exceto cancelados). Receita = pedidos pagos no período. Lucro bruto estimado não considera impostos nem despesas operacionais — não é lucro líquido.</p>
+
+<div class="mt-6 flex justify-end"><a href="{% qs csv=1 %}" class="btn btn-outline btn-sm">Exportar CSV</a></div>
+<section class="panel mt-3 overflow-x-auto p-5">
+  {% if report == "vendas" %}
+    <div class="relative h-72"><canvas id="reportChart" role="img" aria-label="Receita diária"></canvas></div>
+    <table class="table-clean mt-6 min-w-[420px]"><thead><tr><th>Dia</th><th class="text-right">Pedidos pagos</th><th class="text-right">Receita</th></tr></thead>
+      <tbody>{% for label in rows.labels %}<tr><td>{{ label }}</td><td class="text-right">{{ rows.counts|get_item:forloop.counter0 }}</td><td class="text-right">{{ rows.totals|get_item:forloop.counter0 }}</td></tr>{% endfor %}</tbody></table>
+  {% elif report == "produtos" or report == "categorias" or report == "tamanhos" or report == "cores" %}
+    <table class="table-clean min-w-[480px]"><thead><tr><th>{% if report == "produtos" %}Produto{% elif report == "categorias" %}Categoria{% elif report == "tamanhos" %}Tamanho{% else %}Cor{% endif %}</th><th class="text-right">Unidades</th><th class="text-right">Receita</th></tr></thead>
+      <tbody>{% for r in rows %}<tr><td>{% if report == "produtos" %}{{ r.product_name }}{% elif report == "categorias" %}{{ r.category_name }}{% elif report == "tamanhos" %}{{ r.size_name }}{% else %}{{ r.color_name }}{% endif %}</td><td class="text-right">{{ r.units }}</td><td class="text-right">{{ r.revenue|brl }}</td></tr>
+      {% empty %}<tr><td colspan="3" class="text-muted">Sem vendas pagas no período.</td></tr>{% endfor %}</tbody></table>
+  {% elif report == "cupons" %}
+    <table class="table-clean min-w-[480px]"><thead><tr><th>Cupom</th><th class="text-right">Usos</th><th class="text-right">Desconto</th><th class="text-right">Receita gerada</th></tr></thead>
+      <tbody>{% for r in rows %}<tr><td class="font-mono">{{ r.coupon_code }}</td><td class="text-right">{{ r.uses }}</td><td class="text-right">{{ r.discount|brl }}</td><td class="text-right">{{ r.revenue|brl }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="text-muted">Nenhum cupom usado em pedidos pagos.</td></tr>{% endfor %}</tbody></table>
+  {% elif report == "estoque" %}
+    <table class="table-clean min-w-[560px]"><thead><tr><th>SKU</th><th>Produto</th><th class="text-right">Disponível</th><th class="text-right">Mínimo</th></tr></thead>
+      <tbody>{% for v in rows %}<tr><td class="font-mono text-xs">{{ v.sku }}</td><td>{{ v.product.name }} · {{ v.color.name }}/{{ v.size.name }}</td><td class="text-right font-semibold">{{ v.avail }}</td><td class="text-right">{{ v.low_stock_threshold }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="text-muted">Nenhum item abaixo do mínimo.</td></tr>{% endfor %}</tbody></table>
+  {% elif report == "cancelados" %}
+    <table class="table-clean min-w-[560px]"><thead><tr><th>Pedido</th><th>Status</th><th>Motivo</th><th class="text-right">Total</th></tr></thead>
+      <tbody>{% for o in rows %}<tr><td><a class="font-bold hover:underline" href="{% url 'dashboard:order_detail' o.number %}">#{{ o.number }}</a></td><td>{{ o.get_status_display }}</td><td>{{ o.cancel_reason|default:"—" }}</td><td class="text-right">{{ o.total|brl }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="text-muted">Nenhum pedido cancelado no período.</td></tr>{% endfor %}</tbody></table>
+  {% else %}
+    <table class="table-clean min-w-[420px]"><thead><tr><th>Produto</th><th>SKU base</th><th class="text-right">Estoque</th></tr></thead>
+      <tbody>{% for p in rows %}<tr><td>{{ p.name }}</td><td class="font-mono text-xs">{{ p.sku_base }}</td><td class="text-right">{{ p.stock_total }}</td></tr>
+      {% empty %}<tr><td colspan="3" class="text-muted">Todos os produtos com estoque venderam nos últimos 60 dias.</td></tr>{% endfor %}</tbody></table>
+  {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+{% if report == "vendas" %}
+{{ series|json_script:"report-data" }}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var el = document.getElementById("reportChart"); if (!el || !window.Chart) return;
+  var d = JSON.parse(JSON.parse(document.getElementById("report-data").textContent));
+  var css = getComputedStyle(document.documentElement);
+  var rgb = function (v) { return "rgb(" + css.getPropertyValue(v).trim().split(" ").join(",") + ")"; };
+  new Chart(el, { type: "line", data: { labels: d.labels, datasets: [{ label: "Receita", data: d.totals, borderColor: rgb("--c-fg"), backgroundColor: rgb("--c-lime"), pointRadius: 2, fill: false, tension: .2 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false }, ticks: { color: rgb("--c-muted") } }, y: { beginAtZero: true, grid: { color: rgb("--c-line") }, ticks: { color: rgb("--c-muted") } } } } });
+});
+</script>
+{% endif %}
+{% endblock %}

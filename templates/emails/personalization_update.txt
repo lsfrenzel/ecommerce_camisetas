@@ -1,0 +1,12 @@
+{% autoescape off %}Olá, {{ p.name }}!
+
+Sua personalização ({{ p.product.name }} — {{ p.placement.name }}) está: {{ p.get_status_display }}.
+{% if p.admin_notes %}
+Mensagem da equipe:
+{{ p.admin_notes }}
+{% endif %}
+{% if p.status == "approved" %}Ela já está liberada para compra. Acesse o link abaixo e adicione ao carrinho:{% else %}Veja os detalhes:{% endif %}
+{{ link }}
+
+{{ brand.store_name }}
+{% endautoescape %}

@@ -1,0 +1,25 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}Preços em lote{% endblock %}
+{% block heading %}Preços e promoções{% endblock %}
+{% block content %}
+{% include "dashboard/_subnav.html" with section="promotions" %}
+<h1 class="display text-3xl">Alterar preços em lote</h1>
+<p class="help mt-2 max-w-2xl">Todas as alterações ficam registradas na auditoria. Preços promocionais que ficarem maiores ou iguais ao novo preço são removidos automaticamente.</p>
+<form method="post" class="panel mt-6 grid gap-6 p-5 lg:grid-cols-3" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="error lg:col-span-3">{{ form.non_field_errors }}</div>{% endif %}
+  <fieldset class="lg:col-span-2" x-data>
+    <div class="mb-2 flex items-center justify-between"><legend class="label">Produtos</legend>
+      <button type="button" class="text-xs underline" @click="$el.closest('fieldset').querySelectorAll('input[type=checkbox]').forEach(c => c.checked = !c.checked)">Inverter seleção</button></div>
+    <div class="max-h-[420px] space-y-1 overflow-y-auto border border-line p-3 text-sm">
+      {% for c in form.products %}<label class="flex items-center gap-2">{{ c.tag }} {{ c.choice_label }}</label>{% endfor %}
+    </div>
+    {% for e in form.products.errors %}<p class="error">{{ e }}</p>{% endfor %}
+  </fieldset>
+  <div class="space-y-4">
+    {% include "partials/field.html" with field=form.mode %}
+    {% include "partials/field.html" with field=form.value %}
+    <button class="btn btn-dark btn-block" onclick="return confirm('Aplicar alteração de preços?')">Aplicar</button>
+  </div>
+</form>
+{% endblock %}

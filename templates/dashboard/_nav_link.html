@@ -1,0 +1,1 @@
+{% load store %}<a href="{% url url_name %}" class="mb-0.5 flex items-center gap-3 px-3 py-2 font-medium transition {% if section == key %}bg-lime text-ink{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}" {% if section == key %}aria-current="page"{% endif %}>{% icon icon_name 17 %}<span>{{ label }}</span></a>

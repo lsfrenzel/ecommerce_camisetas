@@ -1,0 +1,14 @@
+<form method="get" class="flex flex-wrap items-end gap-2" x-data="{ p: '{{ period.key }}' }">
+  {% for k, v in extra_params.items %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+  {% if report %}<input type="hidden" name="r" value="{{ report }}">{% endif %}
+  <div class="flex flex-wrap gap-1">
+    {% for key, label in periods.items %}
+      <label class="chip cursor-pointer text-xs has-[:checked]:chip-active"><input class="sr-only" type="radio" name="periodo" value="{{ key }}" x-model="p" {% if key == period.key %}checked{% endif %} @change="if (p !== 'personalizado') $el.form.submit()">{{ label }}</label>
+    {% endfor %}
+  </div>
+  <div class="flex items-end gap-2" x-show="p === 'personalizado'" x-cloak>
+    <label class="text-xs">De<input type="date" name="inicio" class="input py-2" value="{{ request.GET.inicio }}"></label>
+    <label class="text-xs">Até<input type="date" name="fim" class="input py-2" value="{{ request.GET.fim }}"></label>
+    <button class="btn btn-dark btn-sm">Aplicar</button>
+  </div>
+</form>

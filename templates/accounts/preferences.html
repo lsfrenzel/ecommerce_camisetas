@@ -1,0 +1,11 @@
+{% extends "accounts/base_account.html" %}
+{% block title %}Comunicação{% endblock %}
+{% block account_content %}
+<h1 class="display text-3xl">Preferências de comunicação</h1>
+<p class="mt-2 max-w-xl text-sm text-muted">E-mails sobre seus pedidos (confirmação, pagamento, envio) são sempre enviados, pois fazem parte da execução da compra. Comunicações de marketing dependem do seu consentimento e podem ser desativadas a qualquer momento.</p>
+<form method="post" class="mt-8 space-y-4">{% csrf_token %}
+  {% include "partials/field.html" with field=form.marketing_opt_in %}
+  {% include "partials/field.html" with field=form.order_updates_whatsapp %}
+  <button class="btn btn-dark">Salvar preferências</button>
+</form>
+{% endblock %}

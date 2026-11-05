@@ -1,0 +1,17 @@
+{% extends "accounts/base_account.html" %}
+{% block title %}Endereços{% endblock %}
+{% block account_content %}
+<div class="flex items-center justify-between gap-4"><h1 class="display text-3xl">Endereços</h1><a href="{% url 'accounts:address_new' %}" class="btn btn-dark btn-sm">Novo endereço</a></div>
+<div class="mt-8 grid gap-4 md:grid-cols-2">
+  {% for a in addresses %}
+  <div class="panel p-5 text-sm">
+    <div class="flex items-center justify-between"><p class="font-display font-bold uppercase">{{ a.label|default:"Endereço" }}</p>{% if a.is_default %}<span class="tag tag-lime">Principal</span>{% endif %}</div>
+    <p class="mt-3">{{ a.recipient_name }}</p><p class="text-muted">{{ a }}<br>CEP {{ a.cep }}</p>
+    <div class="mt-4 flex gap-4">
+      <a href="{% url 'accounts:address_edit' a.pk %}" class="link">Editar</a>
+      <form method="post" action="{% url 'accounts:address_delete' a.pk %}" onsubmit="return confirm('Remover este endereço?')">{% csrf_token %}<button class="text-danger underline underline-offset-4">Remover</button></form>
+    </div>
+  </div>
+  {% empty %}<p class="text-muted">Nenhum endereço salvo.</p>{% endfor %}
+</div>
+{% endblock %}

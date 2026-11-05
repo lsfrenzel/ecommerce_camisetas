@@ -1,0 +1,25 @@
+{% extends "accounts/base_account.html" %}{% load store %}
+{% block title %}Suporte{% endblock %}
+{% block account_content %}
+<h1 class="display text-3xl">Suporte</h1>
+<div class="mt-8 grid gap-10 xl:grid-cols-2">
+  <form method="post" class="space-y-5" novalidate>{% csrf_token %}
+    {% include "partials/field.html" with field=form.order %}
+    {% include "partials/field.html" with field=form.subject %}
+    {% include "partials/field.html" with field=form.message %}
+    <button class="btn btn-dark">Enviar</button>
+  </form>
+  <div>
+    <h2 class="eyebrow mb-4">Suas solicitações</h2>
+    <ul class="divide-y divide-line border-y border-line">
+      {% for t in tickets %}
+      <li class="py-4 text-sm">
+        <div class="flex items-center justify-between gap-3"><p class="font-semibold">{{ t.subject }}</p>{% status_badge t.status t.get_status_display %}</div>
+        <p class="text-xs text-muted">{{ t.created_at|date:"d/m/Y H:i" }}{% if t.order %} · Pedido #{{ t.order.number }}{% endif %}</p>
+        {% if t.staff_reply %}<p class="mt-2 border-l-2 border-lime pl-3">{{ t.staff_reply|linebreaksbr }}</p>{% endif %}
+      </li>
+      {% empty %}<li class="py-4 text-sm text-muted">Nenhuma solicitação.</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

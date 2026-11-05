@@ -1,0 +1,68 @@
+{% load static store %}<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <script>(function(){try{var p=localStorage.getItem("theme")||"system";if(p==="dark"||(p==="system"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark");}catch(e){}})();</script>
+  <title>{% block title %}Painel{% endblock %} · {{ brand.store_name }}</title>
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#F7F5F0">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/app.js' %}" defer></script>
+  <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
+  <script src="{% static 'vendor/alpine.min.js' %}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-bg" x-data="{ nav: false }">
+  {% with perms=perms %}
+  <aside class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-[#101010] text-[#F5F5F5] transition-transform duration-300 lg:translate-x-0" :class="nav && 'translate-x-0'" aria-label="Menu do painel">
+    <div class="flex h-16 items-center justify-between border-b border-white/10 px-5">
+      <a href="{% url 'dashboard:home' %}" class="flex items-center gap-2"><span class="grid h-7 w-7 place-items-center bg-lime font-display text-xs font-black text-ink">{{ brand.store_name|slice:":1" }}</span><span class="font-display text-sm font-bold uppercase">Painel</span></a>
+      <button class="icon-btn text-[#F5F5F5] hover:bg-white/10 lg:hidden" @click="nav=false" aria-label="Fechar menu">{% icon "close" 20 %}</button>
+    </div>
+    <nav class="flex-1 overflow-y-auto px-3 py-4 text-sm">
+      {% include "dashboard/_nav_link.html" with url_name="dashboard:home" label="Visão geral" icon_name="chart" key="home" %}
+      {% if perms.orders.view_order %}{% include "dashboard/_nav_link.html" with url_name="dashboard:orders" label="Pedidos" icon_name="bag" key="orders" %}{% endif %}
+      {% if perms.catalog.view_product %}{% include "dashboard/_nav_link.html" with url_name="dashboard:products" label="Produtos" icon_name="tag" key="products" %}{% endif %}
+      {% if perms.inventory.view_inventorymovement %}{% include "dashboard/_nav_link.html" with url_name="dashboard:inventory" label="Estoque" icon_name="box" key="inventory" %}{% endif %}
+      {% if perms.catalog.view_category %}{% include "dashboard/_nav_link.html" with url_name="dashboard:categorias_list" label="Catálogo" icon_name="file" key="catalog" %}{% endif %}
+      {% if perms.promotions.view_coupon %}{% include "dashboard/_nav_link.html" with url_name="dashboard:promocoes_list" label="Preços e promoções" icon_name="tag" key="promotions" %}{% endif %}
+      {% if perms.personalization.view_personalizationrequest %}{% include "dashboard/_nav_link.html" with url_name="dashboard:personalizations" label="Personalizações" icon_name="brush" key="personalization" %}{% endif %}
+      {% if perms.accounts.view_user %}{% include "dashboard/_nav_link.html" with url_name="dashboard:customers" label="Clientes" icon_name="users" key="customers" %}{% endif %}
+      {% if perms.orders.view_reports %}{% include "dashboard/_nav_link.html" with url_name="dashboard:reports" label="Relatórios" icon_name="chart" key="reports" %}{% endif %}
+      <p class="kicker mb-1 mt-6 px-3 text-white/40">Loja</p>
+      {% if perms.content.view_brandsettings %}{% include "dashboard/_nav_link.html" with url_name="dashboard:brand" label="Marca" icon_name="settings" key="brand" %}{% endif %}
+      {% if perms.content.view_banner %}{% include "dashboard/_nav_link.html" with url_name="dashboard:banners_list" label="Conteúdo" icon_name="file" key="content" %}{% endif %}
+      {% if perms.shipping.view_shippingmethod %}{% include "dashboard/_nav_link.html" with url_name="dashboard:entregas_list" label="Entregas" icon_name="truck" key="shipping" %}{% endif %}
+      {% if perms.accounts.view_supportrequest %}{% include "dashboard/_nav_link.html" with url_name="dashboard:support" label="Atendimento" icon_name="whatsapp" key="support" %}{% endif %}
+      {% if perms.accounts.view_datarequest %}{% include "dashboard/_nav_link.html" with url_name="dashboard:data_requests" label="LGPD" icon_name="shield" key="lgpd" %}{% endif %}
+      {% if perms.auth.change_group %}{% include "dashboard/_nav_link.html" with url_name="dashboard:team" label="Equipe e acessos" icon_name="users" key="team" %}{% endif %}
+      {% if perms.core.view_auditlog %}{% include "dashboard/_nav_link.html" with url_name="dashboard:audit" label="Auditoria" icon_name="clock" key="audit" %}{% endif %}
+    </nav>
+    <div class="border-t border-white/10 p-3 text-xs">
+      <a href="{% url 'core:home' %}" class="flex items-center gap-2 px-3 py-2 text-white/70 hover:text-white" target="_blank">{% icon "external" 14 %} Ver loja</a>
+      {% if user.is_superuser %}<a href="/django-admin/" class="flex items-center gap-2 px-3 py-2 text-white/70 hover:text-white">{% icon "settings" 14 %} Admin técnico</a>{% endif %}
+    </div>
+  </aside>
+  {% endwith %}
+  <div class="fixed inset-0 z-30 bg-black/50 lg:hidden" x-show="nav" x-cloak @click="nav=false"></div>
+
+  <div class="lg:pl-64">
+    <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-bg/90 px-4 backdrop-blur sm:px-6">
+      <button class="icon-btn -ml-2 lg:hidden" @click="nav=true" aria-label="Abrir menu">{% icon "menu" 22 %}</button>
+      <p class="truncate font-display text-sm font-bold uppercase tracking-wider">{% block heading %}{% endblock %}</p>
+      <div class="ml-auto flex items-center gap-1">
+        <button type="button" class="icon-btn" data-theme-toggle aria-pressed="false"><span class="dark:hidden">{% icon "moon" 19 %}</span><span class="hidden dark:inline">{% icon "sun" 19 %}</span><span class="sr-only" data-theme-label>Alternar tema</span></button>
+        <span class="hidden px-2 text-xs text-muted sm:inline">{{ user.email }}</span>
+        <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="icon-btn" aria-label="Sair">{% icon "logout" 19 %}</button></form>
+      </div>
+    </header>
+    <div class="pointer-events-none fixed inset-x-0 top-20 z-50 flex flex-col items-center gap-2 px-4">
+      {% for message in messages %}<div class="toast max-w-lg animate-rise" data-autodismiss role="status"><span class="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 {% if message.tags == 'error' %}bg-danger{% elif message.tags == 'warning' %}bg-orange{% else %}bg-lime{% endif %}"></span><span>{{ message }}</span></div>{% endfor %}
+    </div>
+    <main class="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{% block content %}{% endblock %}</main>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

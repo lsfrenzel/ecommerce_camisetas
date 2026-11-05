@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load store %}
+{% block title %}Perguntas frequentes — {{ brand.store_name }}{% endblock %}
+{% block head %}
+{% if faqs %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faqs %}{"@type":"Question","name":"{{ f.question|escapejs }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.answer|escapejs }}"}}{% if not forloop.last %},{% endif %}{% endfor %}]}
+</script>
+{% endif %}
+{% endblock %}
+{% block content %}
+<section class="shell grid gap-10 py-12 lg:grid-cols-12 lg:py-20">
+  <div class="lg:col-span-4">
+    <p class="kicker">Ajuda</p>
+    <h1 class="display mt-3 text-display-md">Perguntas frequentes</h1>
+    {% if brand.whatsapp_link %}<a href="{{ brand.whatsapp_link }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm mt-8">{% icon "whatsapp" 18 %} Falar no WhatsApp</a>{% endif %}
+  </div>
+  <div class="divide-y divide-line border-y border-line lg:col-span-8">
+    {% for f in faqs %}
+    <details class="group py-5" {% if forloop.first %}open{% endif %}>
+      <summary class="flex cursor-pointer list-none items-start justify-between gap-6 font-display text-lg font-semibold">{{ f.question }}<span class="mt-1 shrink-0 transition group-open:rotate-45">{% icon "plus" 20 %}</span></summary>
+      <div class="prose-store mt-3 text-muted">{{ f.answer|split_paragraphs }}</div>
+    </details>
+    {% empty %}
+    <p class="py-6 text-muted">Ainda não há perguntas cadastradas.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

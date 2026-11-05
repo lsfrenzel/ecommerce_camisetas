@@ -1,0 +1,23 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}Personalizações{% endblock %}
+{% block heading %}Personalizações{% endblock %}
+{% block content %}
+{% include "dashboard/_subnav.html" %}
+<h1 class="display text-3xl">Personalizações</h1>
+<form method="get" class="mt-6 flex gap-2"><select name="status" class="input max-w-[260px] py-2" onchange="this.form.submit()"><option value="">Todas</option>{% for k, v in statuses %}<option value="{{ k }}" {% if k == status %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></form>
+<div class="panel mt-4 overflow-x-auto">
+  <table class="table-clean min-w-[720px]">
+    <thead><tr><th class="pl-4">Data</th><th>Cliente</th><th>Base</th><th>Posição</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for p in page %}
+      <tr><td class="pl-4 text-xs">{{ p.created_at|date:"d/m/Y H:i" }}</td><td>{{ p.name }}<div class="text-xs text-muted">{{ p.email }}</div></td>
+        <td>{{ p.product.name }}<div class="text-xs text-muted">{{ p.variant.color.name }} · {{ p.variant.size.name }} · {{ p.quantity }} un.</div></td>
+        <td>{{ p.placement.name }}{% if p.low_resolution %} <span class="badge badge-warn">baixa res.</span>{% endif %}</td>
+        <td>{% status_badge p.status p.get_status_display %}</td>
+        <td class="pr-4 text-right"><a class="link" href="{% url 'dashboard:personalization_detail' p.public_id %}">Analisar</a></td></tr>
+      {% empty %}<tr><td colspan="6" class="pl-4 text-muted">Nenhuma solicitação.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}

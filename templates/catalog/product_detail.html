@@ -1,0 +1,271 @@
+{% extends "base.html" %}{% load store l10n %}
+{% block title %}{{ product.seo_title|default:product.name }} — {{ brand.store_name }}{% endblock %}
+{% block meta_description %}{{ product.seo_description|default:product.short_description|default:product.description|truncatechars:160 }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ product.name }}{% endblock %}
+{% block og_image %}{% with img=product.primary_image %}{% if img %}<meta property="og:image" content="{% if 'http' not in img.image.url %}{{ site_url }}{% endif %}{{ img.image.url }}">{% endif %}{% endwith %}{% endblock %}
+{% block head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  "sku": "{{ product.sku_base|escapejs }}",
+  "description": "{{ product.short_description|default:product.description|truncatechars:300|escapejs }}",
+  {% with img=product.primary_image %}{% if img %}"image": ["{% if 'http' not in img.image.url %}{{ site_url }}{% endif %}{{ img.image.url|escapejs }}"],{% endif %}{% endwith %}
+  "brand": {"@type": "Brand", "name": "{{ brand.store_name|escapejs }}"},
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ site_url }}{{ product.get_absolute_url }}",
+    "priceCurrency": "BRL",
+    "price": "{{ price.final|unlocalize }}",
+    "availability": "{% if any_available %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "itemCondition": "https://schema.org/NewCondition"
+  }
+}
+</script>
+{% endblock %}
+{% block content %}
+<div x-data="productPage()" x-init="init()" class="shell pb-16 pt-6 lg:pt-10">
+  <nav class="kicker mb-6" aria-label="Trilha">
+    <a href="{% url 'core:home' %}" class="hover:text-fg">Início</a> /
+    <a href="{{ product.category.get_absolute_url }}" class="hover:text-fg">{{ product.category.name }}</a> /
+    <span class="text-fg">{{ product.name }}</span>
+  </nav>
+
+  <div class="grid gap-8 lg:grid-cols-12 lg:gap-12">
+    <!-- Galeria -->
+    <section class="lg:col-span-7" aria-label="Galeria de imagens">
+      <div class="grid gap-3 md:grid-cols-[72px_1fr]">
+        <div class="order-2 flex gap-2 overflow-x-auto scrollbar-none md:order-1 md:flex-col">
+          <template x-for="(img, i) in gallery" :key="img.url">
+            <button type="button" @click="current = i" class="relative aspect-product w-16 shrink-0 overflow-hidden border-2 bg-[#E9E6DF] dark:bg-[#1E1E1E] md:w-full"
+                    :class="current === i ? 'border-fg' : 'border-transparent opacity-70 hover:opacity-100'" :aria-label="'Ver imagem ' + (i + 1)">
+              <img :src="img.thumb" alt="" class="h-full w-full object-cover" loading="lazy" width="120" height="150">
+            </button>
+          </template>
+        </div>
+        <div class="order-1 md:order-2">
+          <button type="button" class="product-media brackets w-full cursor-zoom-in" @click="zoom = true" aria-label="Ampliar imagem">
+            {% with img=product.primary_image %}
+            <img :src="gallery[current] ? gallery[current].url : ''" {% if img %}src="{{ img.image.url }}"{% endif %} :alt="gallery[current] ? gallery[current].alt : ''" alt="{{ img.alt_text|default:product.name }}"
+                 width="1200" height="1500" fetchpriority="high" class="primary">
+            {% endwith %}
+            <span class="absolute bottom-3 right-3 bg-bg/90 p-2">{% icon "zoom" 18 %}</span>
+            <template x-if="gallery[current] && gallery[current].illustrative">
+              <span class="absolute bottom-3 left-3 bg-bg/90 px-2 py-1 font-mono text-[10px] uppercase tracking-wider">Imagem ilustrativa</span>
+            </template>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Informações -->
+    <section class="lg:col-span-5">
+      <div class="lg:sticky lg:top-[calc(var(--header-h)+24px)]">
+        <div class="flex flex-wrap gap-1.5">
+          {% for c in product.collections.all %}<a href="{{ c.get_absolute_url }}" class="tag tag-lime">{{ c.label|default:c.name }}</a>{% endfor %}
+          {% if product.badge %}<span class="tag">{{ product.badge }}</span>{% endif %}
+        </div>
+        <h1 class="display mt-4 text-display-md text-balance">{{ product.name }}</h1>
+        {% if product.short_description %}<p class="mt-3 text-muted">{{ product.short_description }}</p>{% endif %}
+
+        <div class="mt-6 flex items-end gap-3">
+          <p class="font-display text-3xl font-bold" x-text="formatBRL(selected ? selected.price : '{{ price.final|unlocalize }}')">{{ price.final|brl }}</p>
+          <p class="price-old mb-1" x-show="selected ? Number(selected.price) < Number(selected.base) : {{ price.on_sale|yesno:'true,false' }}"
+             x-text="formatBRL(selected ? selected.base : '{{ price.base|unlocalize }}')">{% if price.on_sale %}{{ price.base|brl }}{% endif %}</p>
+          {% if price.label %}<span class="tag tag-orange mb-1.5">{{ price.label }}</span>{% endif %}
+        </div>
+        {% if installments %}<p class="mt-1 text-sm text-muted">{{ installments }} · Pix e cartão via Mercado Pago</p>{% endif %}
+
+        <form method="post" action="{% url 'cart:add' %}" class="mt-8 space-y-6"
+              hx-post="{% url 'cart:add' %}" hx-target="#add-feedback" hx-swap="innerHTML">
+          {% csrf_token %}
+          <input type="hidden" name="variant_id" :value="selected ? selected.id : ''">
+
+          {% if fits|length > 1 %}
+          <fieldset>
+            <legend class="eyebrow mb-3">Modelagem</legend>
+            <div class="flex flex-wrap gap-2">
+              {% for code, label in fits %}
+              <button type="button" class="chip" :class="fit === '{{ code }}' && 'chip-active'" @click="fit = '{{ code }}'" :aria-pressed="fit === '{{ code }}'">{{ label }}</button>
+              {% endfor %}
+            </div>
+          </fieldset>
+          {% endif %}
+
+          <fieldset>
+            <legend class="eyebrow mb-3">Cor: <span class="font-sans normal-case tracking-normal text-muted" x-text="colorName()"></span></legend>
+            <div class="flex flex-wrap gap-2">
+              {% for c in colors %}
+              <button type="button" @click="setColor('{{ c.slug }}')" class="relative h-11 w-11 border-2 p-1 transition" :class="color === '{{ c.slug }}' ? 'border-fg' : 'border-line hover:border-muted'"
+                      :aria-pressed="color === '{{ c.slug }}'" aria-label="{{ c.name }}" data-name="{{ c.name }}" data-color="{{ c.slug }}">
+                <span class="block h-full w-full border border-black/10" style="background: {{ c.hex }}"></span>
+              </button>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <div class="mb-3 flex items-center justify-between">
+              <legend class="eyebrow">Tamanho</legend>
+              {% if product.size_chart %}<button type="button" class="flex items-center gap-1.5 text-xs font-semibold underline underline-offset-4" @click="chart = true">{% icon "ruler" 16 %} Tabela de medidas</button>{% endif %}
+            </div>
+            <div class="grid grid-cols-5 gap-2">
+              {% for s in sizes %}
+              <button type="button" class="chip" @click="pickSize('{{ s.name }}')"
+                      :class="{ 'chip-active': size === '{{ s.name }}', 'chip-disabled': !sizeAvailable('{{ s.name }}') }"
+                      :aria-pressed="size === '{{ s.name }}'" :aria-disabled="!sizeAvailable('{{ s.name }}')">{{ s.name }}</button>
+              {% endfor %}
+            </div>
+            <p class="mt-3 min-h-[20px] text-sm" aria-live="polite">
+              <template x-if="selected && selected.available > 0 && selected.low"><span class="font-semibold text-orange">Últimas <span x-text="selected.available"></span> unidade(s)!</span></template>
+              <template x-if="selected && selected.available > 0 && !selected.low"><span class="text-muted">Em estoque · SKU <span x-text="selected.sku"></span></span></template>
+              <template x-if="size && (!selected || selected.available <= 0)"><span class="font-semibold text-danger">Esgotado nesta combinação.</span></template>
+              <template x-if="!size"><span class="text-muted">Selecione um tamanho.</span></template>
+            </p>
+          </fieldset>
+
+          <div class="flex items-stretch gap-2">
+            <div class="flex items-center border border-line">
+              <button type="button" class="icon-btn" @click="qty = Math.max(1, qty - 1)" aria-label="Diminuir quantidade">{% icon "minus" 16 %}</button>
+              <label class="sr-only" for="qty">Quantidade</label>
+              <input id="qty" name="quantity" type="number" min="1" :max="selected ? selected.available : 1" x-model.number="qty" class="w-12 border-0 bg-transparent text-center font-display font-bold focus:ring-0" inputmode="numeric">
+              <button type="button" class="icon-btn" @click="qty = Math.min(selected ? selected.available : 1, qty + 1)" aria-label="Aumentar quantidade">{% icon "plus" 16 %}</button>
+            </div>
+            <button type="submit" class="btn btn-dark flex-1" :disabled="!canBuy()">Adicionar ao carrinho</button>
+          </div>
+          <button type="submit" name="buy_now" value="1" class="btn btn-primary btn-block" :disabled="!canBuy()"
+                  hx-post="{% url 'cart:add' %}?buy_now=1" hx-target="#add-feedback">Comprar agora</button>
+          <div id="add-feedback" aria-live="polite"></div>
+        </form>
+
+        {% if brand.whatsapp_link %}
+        <a href="{{ brand.whatsapp_link }}?text={{ 'Olá! Tenho uma dúvida sobre: '|urlencode }}{{ product.name|urlencode }}" target="_blank" rel="noopener"
+           class="mt-3 flex items-center justify-center gap-2 py-2 text-sm font-semibold underline-offset-4 hover:underline">{% icon "whatsapp" 18 %} Tirar dúvidas no WhatsApp</a>
+        {% endif %}
+
+        <!-- Frete -->
+        <div class="mt-8 border-t border-line pt-6">
+          <form class="flex gap-2" hx-post="{% url 'shipping:quote' %}" hx-target="#shipping-result" hx-indicator="#ship-ind">
+            {% csrf_token %}
+            <input type="hidden" name="variant_id" :value="selected ? selected.id : '{{ product.variants.all.0.pk|default:'' }}'">
+            <input type="hidden" name="quantity" :value="qty">
+            <label for="cep-pdp" class="sr-only">CEP</label>
+            <div class="relative flex-1">
+              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">{% icon "truck" 18 %}</span>
+              <input id="cep-pdp" name="cep" class="input pl-10" placeholder="Calcular frete: seu CEP" data-mask="99999-999" inputmode="numeric" autocomplete="postal-code" required>
+            </div>
+            <button class="btn btn-outline btn-sm">Calcular</button>
+          </form>
+          <div id="shipping-result" class="mt-3 text-sm"><span id="ship-ind" class="htmx-indicator text-muted">Calculando…</span></div>
+        </div>
+
+        <!-- Detalhes -->
+        <div class="mt-8 divide-y divide-line border-y border-line">
+          {% if product.description %}
+          <details class="group py-4" open>
+            <summary class="flex cursor-pointer list-none items-center justify-between font-display text-sm font-bold uppercase tracking-wider">Sobre a peça <span class="transition group-open:rotate-45">{% icon "plus" 18 %}</span></summary>
+            <div class="prose-store mt-3">{{ product.description|split_paragraphs }}</div>
+          </details>
+          {% endif %}
+          <details class="group py-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between font-display text-sm font-bold uppercase tracking-wider">Tecido e modelagem <span class="transition group-open:rotate-45">{% icon "plus" 18 %}</span></summary>
+            <dl class="mt-3 grid grid-cols-[120px_1fr] gap-y-2 text-sm">
+              {% if product.fabric %}<dt class="text-muted">Tecido</dt><dd>{{ product.fabric }}</dd>{% endif %}
+              {% if product.composition %}<dt class="text-muted">Composição</dt><dd>{{ product.composition }}</dd>{% endif %}
+              {% if product.fit_description %}<dt class="text-muted">Modelagem</dt><dd>{{ product.fit_description }}</dd>{% endif %}
+            </dl>
+          </details>
+          {% if product.care_instructions %}
+          <details class="group py-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between font-display text-sm font-bold uppercase tracking-wider">Cuidados e lavagem <span class="transition group-open:rotate-45">{% icon "plus" 18 %}</span></summary>
+            <div class="prose-store mt-3 text-sm">{{ product.care_instructions|split_paragraphs }}</div>
+          </details>
+          {% endif %}
+          <details class="group py-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between font-display text-sm font-bold uppercase tracking-wider">Trocas e entregas <span class="transition group-open:rotate-45">{% icon "plus" 18 %}</span></summary>
+            <p class="mt-3 text-sm text-muted">Primeira troca facilitada em até 7 dias após o recebimento (direito de arrependimento — CDC, art. 49). Consulte a <a class="link" href="{% url 'content:page' 'trocas-e-devolucoes' %}">política de trocas</a> e a <a class="link" href="{% url 'content:page' 'politica-de-entrega' %}">política de entrega</a>.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  {% if related %}
+  <section class="mt-24" aria-labelledby="related-title">
+    <div class="mb-8 flex items-end justify-between">
+      <h2 id="related-title" class="display text-display-md">Combina com</h2>
+      <a href="{{ product.category.get_absolute_url }}" class="link-slide hidden font-display text-sm font-semibold uppercase tracking-wider sm:inline">Ver mais</a>
+    </div>
+    <div class="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-5 lg:grid-cols-4">
+      {% for product in related %}{% include "catalog/_card.html" %}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Zoom -->
+  <div x-show="zoom" x-cloak x-transition.opacity class="fixed inset-0 z-[60] bg-bg" role="dialog" aria-modal="true" aria-label="Imagem ampliada" @keydown.escape.window="zoom=false">
+    <button type="button" class="icon-btn absolute right-3 top-3 z-10 bg-bg" @click="zoom=false" aria-label="Fechar">{% icon "close" 24 %}</button>
+    <div class="h-full w-full overflow-hidden" @mousemove="pan($event)" @click="zoomed = !zoomed" :class="zoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'">
+      <img :src="gallery[current] ? gallery[current].url : ''" :alt="gallery[current] ? gallery[current].alt : ''" class="h-full w-full object-contain transition-transform duration-300"
+           :style="zoomed ? `transform: scale(2.2); transform-origin: ${ox}% ${oy}%` : ''">
+    </div>
+    <div class="absolute inset-x-0 bottom-4 flex justify-center gap-2">
+      <template x-for="(img, i) in gallery" :key="'z'+img.url"><button type="button" class="h-1.5 w-8" :class="current === i ? 'bg-fg' : 'bg-fg/25'" @click.stop="current = i" :aria-label="'Imagem ' + (i+1)"></button></template>
+    </div>
+  </div>
+
+  {% if product.size_chart %}
+  <div x-show="chart" x-cloak class="fixed inset-0 z-[60] grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="chart-title" @keydown.escape.window="chart=false">
+    <div class="absolute inset-0 bg-black/60" @click="chart=false"></div>
+    <div class="panel relative w-full max-w-lg p-6" x-transition>
+      <div class="mb-4 flex items-center justify-between">
+        <h2 id="chart-title" class="display text-xl">Tabela de medidas</h2>
+        <button type="button" class="icon-btn -mr-2" @click="chart=false" aria-label="Fechar">{% icon "close" 22 %}</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table-clean">
+          <thead><tr>{% for h in product.size_chart.header_list %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for row in product.size_chart.row_list %}<tr>{% for c in row %}<td {% if forloop.first %}class="font-bold"{% endif %}>{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% if product.size_chart.note %}<p class="help mt-4">{{ product.size_chart.note }}</p>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{{ variants_json|json_script:"variants-data" }}
+{{ images_json|json_script:"images-data" }}
+<script>
+  function productPage() {
+    return {
+      variants: [], images: [], gallery: [], current: 0, zoom: false, zoomed: false, chart: false, ox: 50, oy: 50,
+      color: "{{ default_color }}", fit: "{{ default_fit }}", size: "", qty: 1,
+      init() {
+        this.variants = JSON.parse(JSON.parse(document.getElementById("variants-data").textContent));
+        this.images = JSON.parse(JSON.parse(document.getElementById("images-data").textContent));
+        this.updateGallery();
+        this.$watch("color", () => { this.updateGallery(); this.normalizeSize(); });
+        this.$watch("fit", () => this.normalizeSize());
+      },
+      updateGallery() {
+        const byColor = this.images.filter(i => !i.color || i.color === this.color);
+        this.gallery = byColor.length ? byColor : this.images;
+        this.current = 0;
+      },
+      setColor(c) { this.color = c; },
+      colorName() { const el = document.querySelector(`[data-color="${this.color}"]`); return el ? el.dataset.name : ""; },
+      match(size) { return this.variants.find(v => v.color === this.color && v.size === size && (!this.fit || v.fit === this.fit)); },
+      sizeAvailable(size) { const v = this.match(size); return !!v && v.available > 0; },
+      pickSize(size) { this.size = size; this.qty = 1; },
+      normalizeSize() { if (this.size && !this.match(this.size)) this.size = ""; },
+      get selected() { return this.size ? this.match(this.size) : null; },
+      canBuy() { return !!this.selected && this.selected.available > 0 && this.qty >= 1 && this.qty <= this.selected.available; },
+      pan(e) { const r = e.currentTarget.getBoundingClientRect(); this.ox = ((e.clientX - r.left) / r.width) * 100; this.oy = ((e.clientY - r.top) / r.height) * 100; },
+      formatBRL(v) { return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); },
+    };
+  }
+</script>
+{% endblock %}

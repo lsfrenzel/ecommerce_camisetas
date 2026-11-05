@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% load store %}
+{% block title %}{{ brand.about_title }} — {{ brand.store_name }}{% endblock %}
+{% block content %}
+<section class="relative overflow-hidden bg-[#101010] text-[#F5F5F5]">
+  <div class="absolute inset-0" style="background-image:linear-gradient(rgba(245,245,245,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(245,245,245,.06) 1px,transparent 1px);background-size:48px 48px" aria-hidden="true"></div>
+  <div class="shell relative py-20 lg:py-32">
+    <p class="eyebrow text-lime">{{ brand.origin_label }}</p>
+    <h1 class="display mt-6 text-display-xl text-balance">{{ brand.about_title }}</h1>
+    <p class="mt-8 max-w-xl text-lg text-[#F5F5F5]/75">{{ brand.slogan }}</p>
+  </div>
+</section>
+<section class="shell grid gap-12 py-20 lg:grid-cols-12">
+  <div class="lg:col-span-4">
+    {% if brand.manifesto_image %}<img src="{{ brand.manifesto_image.url }}" alt="" class="brackets w-full" loading="lazy">{% else %}<div class="grid-texture aspect-[3/4] border border-line"></div>{% endif %}
+  </div>
+  <div class="prose-store text-lg lg:col-span-7 lg:col-start-6">
+    {% if brand.about_text %}{{ brand.about_text|split_paragraphs }}{% else %}
+      <h2>De onde a gente vem</h2>
+      <p>A marca nasce no Capão Redondo, Zona Sul de São Paulo — território de música, arte, fé e muita criatividade. Fazemos streetwear com identidade, para quem constrói cultura em vez de apenas seguir.</p>
+      <h2>No que a gente acredita</h2>
+      <p>Moda é linguagem. Cada estampa é autoral e carrega uma mensagem de pertencimento, autoestima e transformação social.</p>
+      <p class="text-muted">(Edite este texto no painel em Conteúdo → Marca.)</p>
+    {% endif %}
+    <div class="mt-10 flex flex-wrap gap-3 not-prose">
+      <a href="{% url 'catalog:shop' %}" class="btn btn-dark">Ver a loja</a>
+      <a href="{% url 'personalization:start' %}" class="btn btn-outline">Personalize</a>
+    </div>
+  </div>
+</section>
+<section class="border-t border-line">
+  <div class="shell py-16">{% include "content/_newsletter_form.html" %}</div>
+</section>
+{% endblock %}

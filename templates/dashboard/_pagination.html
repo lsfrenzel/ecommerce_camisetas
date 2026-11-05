@@ -1,0 +1,10 @@
+{% load store %}
+{% if page.has_other_pages %}
+<nav class="mt-6 flex items-center justify-between text-sm" aria-label="Paginação">
+  <span class="text-muted">Página {{ page.number }} de {{ page.paginator.num_pages }} · {{ page.paginator.count }} registro(s)</span>
+  <span class="flex gap-1">
+    {% if page.has_previous %}<a class="chip" href="{% qs page=page.previous_page_number %}">← Anterior</a>{% endif %}
+    {% if page.has_next %}<a class="chip" href="{% qs page=page.next_page_number %}">Próxima →</a>{% endif %}
+  </span>
+</nav>
+{% endif %}

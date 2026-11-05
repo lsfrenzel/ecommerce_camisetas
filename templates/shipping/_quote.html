@@ -1,0 +1,16 @@
+{% load store %}
+{% if error %}
+  <p class="error" role="alert">{{ error }}</p>
+{% elif options %}
+  <ul class="divide-y divide-line border border-line">
+    {% for o in options %}
+    <li class="flex items-center justify-between gap-3 px-3 py-2.5">
+      <span><span class="font-semibold">{{ o.name }}</span>{% if o.eta %} <span class="text-muted">· {{ o.eta }}</span>{% endif %}</span>
+      <span class="font-display font-bold">{% if o.is_free %}Grátis{% else %}{{ o.price|brl }}{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="help">Valores e prazos finais são confirmados no checkout.</p>
+{% else %}
+  <p class="help">Nenhuma modalidade de entrega disponível para este CEP. Fale com a gente pelo WhatsApp.</p>
+{% endif %}

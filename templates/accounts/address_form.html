@@ -1,0 +1,18 @@
+{% extends "accounts/base_account.html" %}
+{% block title %}Endereço{% endblock %}
+{% block account_content %}
+<h1 class="display text-3xl">{% if instance %}Editar endereço{% else %}Novo endereço{% endif %}</h1>
+<form method="post" class="mt-8 grid max-w-2xl gap-5 sm:grid-cols-6" novalidate>{% csrf_token %}
+  {% include "partials/field.html" with field=form.label span="sm:col-span-3" %}
+  {% include "partials/field.html" with field=form.recipient_name span="sm:col-span-3" %}
+  {% include "partials/field.html" with field=form.cep span="sm:col-span-2" %}
+  {% include "partials/field.html" with field=form.street span="sm:col-span-4" %}
+  {% include "partials/field.html" with field=form.number span="sm:col-span-2" %}
+  {% include "partials/field.html" with field=form.complement span="sm:col-span-4" %}
+  {% include "partials/field.html" with field=form.neighborhood span="sm:col-span-2" %}
+  {% include "partials/field.html" with field=form.city span="sm:col-span-3" %}
+  {% include "partials/field.html" with field=form.state span="sm:col-span-1" %}
+  {% include "partials/field.html" with field=form.is_default span="sm:col-span-6" %}
+  <div class="flex gap-3 sm:col-span-6"><button class="btn btn-dark">Salvar</button><a href="{% url 'accounts:addresses' %}" class="btn btn-ghost">Cancelar</a></div>
+</form>
+{% endblock %}

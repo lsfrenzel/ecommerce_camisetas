@@ -1,0 +1,15 @@
+{% extends "accounts/auth_base.html" %}
+{% block title %}Entrar — {{ brand.store_name }}{% endblock %}
+{% block auth_content %}
+<h1 class="display text-display-md">Entrar</h1>
+<p class="mt-2 text-muted">Acompanhe pedidos, salve endereços e compre mais rápido.</p>
+<form method="post" class="mt-8 space-y-5" novalidate>
+  {% csrf_token %}<input type="hidden" name="next" value="{{ next }}">
+  {% if form.non_field_errors %}<div class="border-l-4 border-danger bg-danger/10 p-3 text-sm" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  {% include "partials/field.html" with field=form.email %}
+  {% include "partials/field.html" with field=form.password %}
+  <div class="flex justify-end"><a href="{% url 'accounts:password_reset' %}" class="link text-sm">Esqueci minha senha</a></div>
+  <button class="btn btn-dark btn-block">Entrar</button>
+</form>
+<p class="mt-8 text-sm">Ainda não tem conta? <a class="link font-semibold" href="{% url 'accounts:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Criar conta</a></p>
+{% endblock %}

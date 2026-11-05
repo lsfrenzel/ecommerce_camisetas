@@ -1,0 +1,98 @@
+{% load store %}
+{% if brand.announcement %}
+<div class="overflow-hidden bg-inverse text-on-inverse">
+  <div class="flex w-max animate-marquee gap-12 whitespace-nowrap py-2 font-display text-[11px] font-semibold uppercase tracking-[0.22em]" aria-hidden="true">
+    {% for i in "12345678" %}<span>{{ brand.announcement }}</span><span class="text-lime">✦</span>{% endfor %}
+  </div>
+  <p class="sr-only">{{ brand.announcement }}</p>
+</div>
+{% endif %}
+<header x-data="{ menu: false, search: false }" @keydown.escape.window="menu=false; search=false"
+        class="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur supports-[backdrop-filter]:bg-bg/75">
+  <div class="shell flex h-[var(--header-h)] items-center gap-2">
+    <button type="button" class="icon-btn -ml-2 lg:hidden" @click="menu = true" aria-label="Abrir menu" :aria-expanded="menu">
+      {% icon "menu" 22 %}
+    </button>
+
+    <a href="{% url 'core:home' %}" class="mr-2 flex shrink-0 items-center gap-2" aria-label="{{ brand.store_name }} — página inicial">
+      {% if brand.logo %}
+        <img src="{{ brand.logo.url }}" alt="{{ brand.store_name }}" class="h-8 w-auto {% if brand.logo_dark %}dark:hidden{% endif %}" width="140" height="32">
+        {% if brand.logo_dark %}<img src="{{ brand.logo_dark.url }}" alt="" class="hidden h-8 w-auto dark:block" width="140" height="32">{% endif %}
+      {% else %}
+        <span class="grid h-8 w-8 place-items-center bg-lime font-display text-sm font-black text-ink">{{ brand.store_name|slice:":1" }}</span>
+        <span class="font-display text-[15px] font-bold uppercase tracking-tight sm:text-base">{{ brand.store_name }}</span>
+      {% endif %}
+    </a>
+
+    <nav class="ml-4 hidden items-center gap-5 whitespace-nowrap lg:flex xl:ml-8 xl:gap-7" aria-label="Principal">
+      {% with p=request.path %}
+      <a href="{% url 'core:home' %}" class="link-slide hidden font-display text-[13px] font-semibold uppercase tracking-[0.12em] xl:inline" {% if p == '/' %}aria-current="page"{% endif %}>Início</a>
+      <a href="{% url 'catalog:shop' %}" class="link-slide font-display text-[13px] font-semibold uppercase tracking-[0.12em]" {% if p == '/loja/' and not request.GET.modelagem %}aria-current="page"{% endif %}>Camisetas</a>
+      <a href="{% url 'catalog:shop' %}?modelagem=oversized" class="link-slide font-display text-[13px] font-semibold uppercase tracking-[0.12em]" {% if request.GET.modelagem == 'oversized' %}aria-current="page"{% endif %}>Oversized</a>
+      <a href="{% url 'catalog:collections' %}" class="link-slide font-display text-[13px] font-semibold uppercase tracking-[0.12em]" {% if '/colec' in p %}aria-current="page"{% endif %}>Coleções</a>
+      <a href="{% url 'personalization:start' %}" class="link-slide font-display text-[13px] font-semibold uppercase tracking-[0.12em]" {% if '/personalize/' in p %}aria-current="page"{% endif %}>Personalize</a>
+      <a href="{% url 'content:about' %}" class="link-slide font-display text-[13px] font-semibold uppercase tracking-[0.12em]" {% if p == '/sobre/' %}aria-current="page"{% endif %}>Sobre a marca</a>
+      {% endwith %}
+    </nav>
+
+    <div class="ml-auto flex items-center">
+      <button type="button" class="icon-btn" @click="search = !search; $nextTick(() => $refs.q && $refs.q.focus())" aria-label="Buscar" :aria-expanded="search">
+        {% icon "search" 20 %}
+      </button>
+      <button type="button" class="icon-btn" data-theme-toggle aria-pressed="false">
+        <span class="dark:hidden">{% icon "moon" 20 %}</span><span class="hidden dark:inline">{% icon "sun" 20 %}</span>
+        <span class="sr-only" data-theme-label>Alternar tema</span>
+      </button>
+      <a href="{% if user.is_authenticated %}{% url 'accounts:dashboard' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="icon-btn hidden sm:inline-flex" aria-label="{% if user.is_authenticated %}Minha conta{% else %}Entrar{% endif %}">
+        {% icon "user" 20 %}
+      </a>
+      <a href="{% url 'cart:detail' %}" class="icon-btn relative -mr-2" aria-label="Carrinho, {{ cart_count }} item(ns)">
+        {% icon "bag" 21 %}
+        <span data-cart-count class="absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center bg-lime px-1 font-display text-[10px] font-bold text-ink {% if not cart_count %}hidden{% endif %}">{{ cart_count }}</span>
+      </a>
+    </div>
+  </div>
+
+  <div x-show="search" x-cloak x-transition.opacity class="border-t border-line bg-bg">
+    <form action="{% url 'catalog:shop' %}" method="get" role="search" class="shell flex items-center gap-3 py-3">
+      {% icon "search" 20 "text-muted" %}
+      <label for="q-header" class="sr-only">Buscar produtos</label>
+      <input x-ref="q" id="q-header" name="q" type="search" value="{{ request.GET.q|default:'' }}" placeholder="Buscar camisetas, coleções, SKU…"
+             class="w-full border-0 bg-transparent py-2 font-display text-lg uppercase tracking-tight placeholder:text-muted/60 focus:outline-none focus:ring-0" autocomplete="off">
+      <button class="btn btn-dark btn-sm">Buscar</button>
+    </form>
+  </div>
+
+  <!-- Menu mobile -->
+  <div x-show="menu" x-cloak class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+    <div class="absolute inset-0 bg-black/50" @click="menu=false" x-show="menu" x-transition.opacity></div>
+    <nav x-show="menu" x-transition:enter="transition duration-300 ease-snap" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full"
+         class="grid-texture absolute inset-y-0 left-0 flex w-[88%] max-w-sm flex-col bg-bg" aria-label="Menu mobile">
+      <div class="flex h-[var(--header-h)] items-center justify-between border-b border-line px-4">
+        <span class="eyebrow">Menu</span>
+        <button type="button" class="icon-btn -mr-2" @click="menu=false" aria-label="Fechar menu">{% icon "close" 22 %}</button>
+      </div>
+      <ul class="flex-1 space-y-1 overflow-y-auto px-4 py-6">
+        <li><a class="block py-2 font-display text-3xl font-bold uppercase tracking-tight" href="{% url 'core:home' %}">Início</a></li>
+        <li><a class="block py-2 font-display text-3xl font-bold uppercase tracking-tight" href="{% url 'catalog:shop' %}">Camisetas</a></li>
+        <li><a class="block py-2 font-display text-3xl font-bold uppercase tracking-tight" href="{% url 'catalog:shop' %}?modelagem=oversized">Oversized</a></li>
+        <li><a class="block py-2 font-display text-3xl font-bold uppercase tracking-tight" href="{% url 'catalog:collections' %}">Coleções</a></li>
+        <li><a class="block py-2 font-display text-3xl font-bold uppercase tracking-tight" href="{% url 'personalization:start' %}">Personalize <span class="tag tag-lime align-middle">Novo</span></a></li>
+        <li><a class="block py-2 font-display text-3xl font-bold uppercase tracking-tight" href="{% url 'content:about' %}">Sobre a marca</a></li>
+        {% if nav_categories %}
+        <li class="pt-6"><p class="kicker mb-2">Categorias</p>
+          <div class="flex flex-wrap gap-2">{% for c in nav_categories %}<a class="chip" href="{% url 'catalog:category' c.slug %}">{{ c.name }}</a>{% endfor %}</div>
+        </li>
+        {% endif %}
+      </ul>
+      <div class="border-t border-line p-4 safe-bottom">
+        {% if user.is_authenticated %}
+          <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline btn-block">Minha conta</a>
+        {% else %}
+          <a href="{% url 'accounts:login' %}" class="btn btn-dark btn-block">Entrar / Criar conta</a>
+        {% endif %}
+      </div>
+    </nav>
+  </div>
+</header>

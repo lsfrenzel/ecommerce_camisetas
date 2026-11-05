@@ -1,0 +1,24 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Auditoria{% endblock %}
+{% block heading %}Auditoria{% endblock %}
+{% block content %}
+<h1 class="display text-3xl">Registro de auditoria</h1>
+<form method="get" class="mt-6 flex flex-wrap gap-2">
+  <input name="q" value="{{ request.GET.q }}" class="input max-w-xs py-2" placeholder="Objeto ou e-mail">
+  <select name="acao" class="input max-w-[240px] py-2"><option value="">Todas as ações</option>{% for k, v in actions %}<option value="{{ k }}" {% if request.GET.acao == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+  <button class="btn btn-outline btn-sm">Filtrar</button>
+</form>
+<div class="panel mt-4 overflow-x-auto">
+  <table class="table-clean min-w-[820px]">
+    <thead><tr><th class="pl-4">Data</th><th>Usuário</th><th>Ação</th><th>Objeto</th><th>Detalhes</th></tr></thead>
+    <tbody>
+      {% for a in page %}
+      <tr><td class="pl-4 text-xs">{{ a.created_at|date:"d/m/Y H:i:s" }}</td><td class="text-xs">{{ a.actor.email|default:"sistema" }}{% if a.ip_address %}<br><span class="text-muted">{{ a.ip_address }}</span>{% endif %}</td>
+        <td>{{ a.get_action_display }}</td><td>{{ a.object_repr }}<div class="text-xs text-muted">{{ a.object_type }}</div></td>
+        <td class="text-xs">{{ a.message }}{% if a.changes %}<div class="mt-1 font-mono text-muted">{% for k, v in a.changes.items %}{{ k }}: {{ v.0 }} → {{ v.1 }}<br>{% endfor %}</div>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="5" class="pl-4 text-muted">Sem registros.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}

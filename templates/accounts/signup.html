@@ -1,0 +1,20 @@
+{% extends "accounts/auth_base.html" %}
+{% block title %}Criar conta — {{ brand.store_name }}{% endblock %}
+{% block auth_content %}
+<h1 class="display text-display-md">Criar conta</h1>
+<p class="mt-2 text-muted">Leva menos de um minuto.</p>
+<form method="post" class="mt-8 space-y-5" novalidate>
+  {% csrf_token %}<input type="hidden" name="next" value="{{ next }}">
+  {% if form.non_field_errors %}<div class="border-l-4 border-danger bg-danger/10 p-3 text-sm" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  {% include "partials/field.html" with field=form.full_name %}
+  {% include "partials/field.html" with field=form.email %}
+  {% include "partials/field.html" with field=form.password1 %}
+  {% include "partials/field.html" with field=form.password2 %}
+  <div class="hidden" aria-hidden="true">{{ form.website }}</div>
+  <label class="flex items-start gap-3 text-sm">{{ form.accept_terms }}<span>Li e aceito os <a class="link" target="_blank" href="{% url 'content:page' 'termos-de-uso' %}">termos de uso</a> e a <a class="link" target="_blank" href="{% url 'content:page' 'politica-de-privacidade' %}">política de privacidade</a>.</span></label>
+  {% for e in form.accept_terms.errors %}<p class="error">{{ e }}</p>{% endfor %}
+  <label class="flex items-start gap-3 text-sm">{{ form.marketing_opt_in }}<span>{{ form.marketing_opt_in.label }} <span class="text-muted">(opcional)</span></span></label>
+  <button class="btn btn-dark btn-block">Criar conta</button>
+</form>
+<p class="mt-8 text-sm">Já tem conta? <a class="link font-semibold" href="{% url 'accounts:login' %}">Entrar</a></p>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}Produtos{% endblock %}
+{% block heading %}Produtos{% endblock %}
+{% block content %}
+{% include "dashboard/_subnav.html" %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <h1 class="display text-3xl">Produtos</h1>
+  <div class="flex flex-wrap gap-2">
+    {% if perms.orders.view_reports and perms.catalog.change_product %}<a href="{% url 'dashboard:bulk_price' %}" class="btn btn-outline btn-sm">Preços em lote</a>{% endif %}
+    {% if perms.catalog.add_product %}<a href="{% url 'dashboard:product_new' %}" class="btn btn-dark btn-sm">{% icon "plus" 16 %} Novo produto</a>{% endif %}
+  </div>
+</div>
+<form method="get" class="mt-6 flex flex-wrap gap-2">
+  <input name="q" value="{{ q }}" class="input max-w-xs py-2" placeholder="Nome ou SKU">
+  <select name="status" class="input max-w-[200px] py-2" onchange="this.form.submit()">
+    <option value="">Todos (exceto arquivados)</option>
+    {% for k, v in statuses %}<option value="{{ k }}" {% if k == status %}selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-outline btn-sm">Filtrar</button>
+</form>
+<div class="panel mt-4 overflow-x-auto">
+  <table class="table-clean min-w-[720px]">
+    <thead><tr><th class="pl-4">Produto</th><th>SKU</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Situação</th><th></th></tr></thead>
+    <tbody>
+      {% for p in page %}
+      <tr>
+        <td class="pl-4"><div class="flex items-center gap-3">
+          <div class="product-media w-10 shrink-0">{% with img=p.primary_image %}{% if img %}<img src="{{ img.thumb_url }}" alt="" width="40" height="50" loading="lazy">{% endif %}{% endwith %}</div>
+          <div><a href="{% url 'dashboard:product_edit' p.pk %}" class="font-semibold hover:underline">{{ p.name }}</a>{% if p.is_featured %} <span class="tag tag-lime">Destaque</span>{% endif %}<div class="text-xs text-muted">{{ p.variant_count }} variação(ões) · {{ p.sold_count }} vendida(s)</div></div></div></td>
+        <td class="font-mono text-xs">{{ p.sku_base }}</td>
+        <td>{{ p.category.name }}</td>
+        <td>{% if p.sale_price %}<span class="price-old">{{ p.price|brl }}</span><br>{{ p.sale_price|brl }}{% else %}{{ p.price|brl }}{% endif %}</td>
+        <td>{{ p.stock_total|default:0 }}</td>
+        <td>{% status_badge p.status p.get_status_display %}</td>
+        <td class="pr-4 text-right"><a class="link" href="{% url 'dashboard:product_edit' p.pk %}">Editar</a></td>
+      </tr>
+      {% empty %}<tr><td colspan="7" class="pl-4 text-muted">Nenhum produto encontrado.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}

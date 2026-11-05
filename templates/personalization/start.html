@@ -1,0 +1,181 @@
+{% extends "base.html" %}{% load store %}
+{% block title %}Personalize sua camiseta — {{ brand.store_name }}{% endblock %}
+{% block meta_description %}Crie sua camiseta oversized personalizada: envie sua arte ou frase, escolha cor, tamanho e posição da estampa.{% endblock %}
+{% block content %}
+<section class="border-b-2 border-fg bg-lime text-ink">
+  <div class="shell grid gap-6 py-12 lg:grid-cols-12 lg:items-end lg:py-16">
+    <div class="lg:col-span-8">
+      <p class="eyebrow">Personalize</p>
+      <h1 class="mt-3 font-display text-display-lg font-bold uppercase">{{ brand.personalize_title }}</h1>
+    </div>
+    <p class="max-w-md text-lg lg:col-span-4">{{ brand.personalize_text }}</p>
+  </div>
+</section>
+
+{% if not has_products %}
+<section class="shell py-20">
+  <p class="display text-2xl">Personalização indisponível no momento.</p>
+  <p class="mt-3 text-muted">Nenhum modelo está habilitado para personalização. Volte em breve ou fale com a gente.</p>
+</section>
+{% else %}
+<section class="shell py-10 lg:py-14" x-data="personalizer()" x-init="init()">
+  <form method="post" enctype="multipart/form-data" class="grid gap-10 lg:grid-cols-12" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="border-l-4 border-danger bg-danger/10 p-3 text-sm lg:col-span-12" role="alert">{% for e in form.non_field_errors %}{{ e }} {% endfor %}</div>{% endif %}
+
+    <!-- Prévia -->
+    <div class="lg:col-span-5">
+      <div class="lg:sticky lg:top-[calc(var(--header-h)+24px)]">
+        <div class="flex gap-2">
+          <button type="button" class="chip" :class="side === 'front' && 'chip-active'" @click="side='front'">Frente</button>
+          <button type="button" class="chip" :class="side === 'back' && 'chip-active'" @click="side='back'">Costas</button>
+        </div>
+        <div class="product-media brackets mt-4" aria-live="polite">
+          <template x-if="shirtImage()"><img :src="shirtImage()" alt="Base da camiseta" class="primary"></template>
+          <template x-if="!shirtImage()"><div class="absolute inset-0" :style="`background:${shirtColor()}`"></div></template>
+          <div class="absolute border border-dashed border-orange/80" x-show="placement && placement.side === side"
+               :style="placement ? `left:${placement.box[0]}%;top:${placement.box[1]}%;width:${placement.box[2]}%;height:${placement.box[3]}%` : ''">
+            <img x-show="preview" :src="preview" alt="Prévia da sua arte" class="absolute inset-0 h-full w-full object-contain">
+            <p x-show="text" x-text="text" class="absolute inset-x-0 bottom-1 break-words text-center font-display text-[clamp(10px,2.4vw,20px)] font-bold uppercase leading-none" :style="`color:${textColor}`"></p>
+          </div>
+        </div>
+        <p class="mt-3 flex items-start gap-2 text-xs text-muted">{% icon "alert" 14 "mt-0.5 shrink-0" %} Prévia meramente ilustrativa. Posição, tamanho e cores finais são ajustados pela nossa equipe antes da produção.</p>
+        <p x-show="lowRes" x-cloak class="mt-2 border-l-4 border-orange bg-orange/10 p-2 text-xs font-semibold">Resolução baixa (<span x-text="imgW + '×' + imgH"></span> px). Recomendamos ao menos <span x-text="data.minPixels"></span> px no lado maior para uma boa impressão.</p>
+      </div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="space-y-10 lg:col-span-7">
+      <fieldset>
+        <legend class="eyebrow mb-5 flex items-center gap-3"><span class="grid h-7 w-7 place-items-center bg-fg text-bg">1</span> Base</legend>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label class="label" for="id_product">Modelo</label>
+            <select name="product" id="id_product" class="input" x-model="productId" required>
+              <option value="">Escolha…</option>
+              <template x-for="p in data.products" :key="p.id"><option :value="p.id" x-text="p.name" :selected="p.id == productId"></option></template>
+            </select>
+            {% for e in form.product.errors %}<p class="error">{{ e }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="label" for="id_variant">Cor e tamanho</label>
+            <select name="variant" id="id_variant" class="input" x-model="variantId" required>
+              <option value="">Escolha…</option>
+              <template x-for="v in variantsFor()" :key="v.id"><option :value="v.id" :disabled="v.available < 1" x-text="v.label + (v.available < 1 ? ' — esgotado' : '')" :selected="v.id == variantId"></option></template>
+            </select>
+            {% for e in form.variant.errors %}<p class="error">{{ e }}</p>{% endfor %}
+          </div>
+          {% include "partials/field.html" with field=form.quantity %}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="eyebrow mb-5 flex items-center gap-3"><span class="grid h-7 w-7 place-items-center bg-fg text-bg">2</span> Posição da estampa</legend>
+        <div class="grid gap-2 sm:grid-cols-2">
+          {% for pl in placements %}
+          <label class="flex cursor-pointer items-start gap-3 border border-line bg-surface p-4 text-sm has-[:checked]:border-fg has-[:checked]:shadow-[3px_3px_0_0_rgb(var(--c-fg))]">
+            <input type="radio" name="placement" value="{{ pl.pk }}" class="mt-1" x-model="placementId" {% if form.placement.value|stringformat:"s" == pl.pk|stringformat:"s" %}checked{% endif %}>
+            <span><span class="font-semibold">{{ pl.name }}</span> <span class="text-muted">· {{ pl.get_side_display }}</span>
+              <span class="block text-xs text-muted">{{ pl.description }}</span>
+              <span class="mt-1 block font-display font-bold">{% if pl.fee %}+ {{ pl.fee|brl }}{% else %}Sem custo adicional{% endif %}</span></span>
+          </label>
+          {% endfor %}
+        </div>
+        {% for e in form.placement.errors %}<p class="error">{{ e }}</p>{% endfor %}
+      </fieldset>
+
+      <fieldset>
+        <legend class="eyebrow mb-5 flex items-center gap-3"><span class="grid h-7 w-7 place-items-center bg-fg text-bg">3</span> Sua arte</legend>
+        <div class="space-y-4">
+          <div>
+            <label class="label" for="id_image_upload">{{ form.image_upload.label }}</label>
+            <label class="flex cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed border-line bg-surface px-4 py-8 text-center text-sm transition hover:border-fg">
+              {% icon "upload" 26 %}
+              <span class="font-semibold" x-text="fileName || 'Clique para escolher um arquivo'"></span>
+              <span class="text-xs text-muted">{{ form.image_upload.help_text }}</span>
+              <input id="id_image_upload" type="file" name="image_upload" accept="image/png,image/jpeg,image/webp" class="sr-only" @change="onFile($event)">
+            </label>
+            {% for e in form.image_upload.errors %}<p class="error">{{ e }}</p>{% endfor %}
+          </div>
+          <div class="grid gap-4 sm:grid-cols-[1fr_120px]">
+            <div>
+              <label class="label" for="id_custom_text">Texto personalizado <span class="font-normal text-muted">(opcional)</span></label>
+              <input id="id_custom_text" name="custom_text" maxlength="120" class="input" x-model="text" value="{{ form.custom_text.value|default:'' }}">
+            </div>
+            <div>
+              <label class="label" for="id_text_color">Cor do texto</label>
+              <input id="id_text_color" type="color" name="text_color" class="input h-[50px] p-1" x-model="textColor">
+            </div>
+          </div>
+          {% include "partials/field.html" with field=form.instructions %}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="eyebrow mb-5 flex items-center gap-3"><span class="grid h-7 w-7 place-items-center bg-fg text-bg">4</span> Contato</legend>
+        <div class="grid gap-4 sm:grid-cols-2">
+          {% include "partials/field.html" with field=form.name span="sm:col-span-2" %}
+          {% include "partials/field.html" with field=form.email %}
+          {% include "partials/field.html" with field=form.phone %}
+        </div>
+      </fieldset>
+
+      <div class="panel p-5">
+        <h2 class="eyebrow">Resumo</h2>
+        <dl class="mt-4 space-y-2 text-sm">
+          <div class="flex justify-between"><dt>Camiseta</dt><dd x-text="product() ? brl(product().price) : '—'"></dd></div>
+          <div class="flex justify-between"><dt>Personalização (por peça)</dt><dd x-text="placement ? brl(placement.fee) : '—'"></dd></div>
+          <div class="flex justify-between"><dt>Quantidade</dt><dd x-text="qty"></dd></div>
+          <div class="flex justify-between border-t border-line pt-3 font-display text-lg font-bold"><dt>Estimativa</dt><dd x-text="estimate()"></dd></div>
+        </dl>
+        <p class="help mt-2">Valor estimado com preço cheio; promoções vigentes são aplicadas no carrinho. Frete calculado no checkout.</p>
+        <label class="mt-5 flex items-start gap-3 text-sm">{{ form.rights_confirmed }}<span>{{ form.rights_confirmed.label }}</span></label>
+        {% for e in form.rights_confirmed.errors %}<p class="error">{{ e }}</p>{% endfor %}
+        <button class="btn btn-primary btn-block mt-5">{% if brand.personalization_requires_approval %}Enviar para análise{% else %}Adicionar ao carrinho{% endif %}</button>
+        {% if brand.personalization_requires_approval %}<p class="help mt-2 text-center">Nossa equipe revisa a arte e libera o pagamento — geralmente em até 1 dia útil.</p>{% endif %}
+      </div>
+    </div>
+  </form>
+</section>
+{{ data_json|json_script:"personalize-data" }}
+<script>
+  function personalizer() {
+    return {
+      data: { products: [], variants: [], placements: [], minPixels: 1800 },
+      productId: "{{ form.product.value|default:'' }}", variantId: "{{ form.variant.value|default:'' }}",
+      placementId: "{{ form.placement.value|default:'' }}", side: "front", preview: "", fileName: "",
+      text: "{{ form.custom_text.value|default:''|escapejs }}", textColor: "{{ form.text_color.value|default:'#171717' }}",
+      imgW: 0, imgH: 0, lowRes: false, qty: {{ form.quantity.value|default:1 }},
+      init() {
+        this.data = JSON.parse(JSON.parse(document.getElementById("personalize-data").textContent));
+        if (!this.productId && this.data.products.length) this.productId = String(this.data.products[0].id);
+        const q = document.getElementById("id_quantity");
+        if (q) q.addEventListener("input", () => { this.qty = Math.max(1, parseInt(q.value || "1", 10)); });
+        this.$watch("placementId", () => { if (this.placement) this.side = this.placement.side; });
+        this.$watch("productId", () => { if (!this.variantsFor().some(v => String(v.id) === String(this.variantId))) this.variantId = ""; });
+      },
+      get placement() { return this.data.placements.find(p => String(p.id) === String(this.placementId)); },
+      product() { return this.data.products.find(p => String(p.id) === String(this.productId)); },
+      variantsFor() { return this.data.variants.filter(v => String(v.product) === String(this.productId)); },
+      variant() { return this.data.variants.find(v => String(v.id) === String(this.variantId)); },
+      shirtImage() { const p = this.product(); return p ? (this.side === "back" ? (p.back || p.front) : p.front) : ""; },
+      shirtColor() { const v = this.variant(); return v ? v.hex : "#E9E6DF"; },
+      onFile(e) {
+        const f = e.target.files[0]; if (!f) return;
+        this.fileName = f.name;
+        const url = URL.createObjectURL(f); this.preview = url;
+        const img = new Image();
+        img.onload = () => { this.imgW = img.naturalWidth; this.imgH = img.naturalHeight; this.lowRes = Math.max(this.imgW, this.imgH) < this.data.minPixels; };
+        img.src = url;
+      },
+      brl(v) { return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); },
+      estimate() {
+        const p = this.product(); if (!p) return "—";
+        const fee = this.placement ? Number(this.placement.fee) : 0;
+        return this.brl((Number(p.price) + fee) * this.qty);
+      },
+    };
+  }
+</script>
+{% endif %}
+{% endblock %}

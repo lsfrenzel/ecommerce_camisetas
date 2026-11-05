@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Seus dados (LGPD) — {{ brand.store_name }}{% endblock %}
+{% block content %}
+<section class="shell max-w-3xl py-16">
+  <h1 class="display text-display-md">Seus dados (LGPD)</h1>
+  <p class="mt-4 text-muted">Você pode solicitar acesso, correção, exportação ou exclusão dos seus dados pessoais. Se você tem conta, entre para fazer a solicitação com segurança. Se comprou como visitante, envie um e-mail{% if brand.contact_email %} para <a class="link" href="mailto:{{ brand.contact_email }}">{{ brand.contact_email }}</a>{% endif %} a partir do mesmo endereço usado na compra.</p>
+  <div class="mt-8 flex gap-3"><a href="{% url 'accounts:login' %}?next={% url 'accounts:privacy' %}" class="btn btn-dark">Entrar</a><a href="{% url 'content:page' 'politica-de-privacidade' %}" class="btn btn-outline">Política de privacidade</a></div>
+</section>
+{% endblock %}

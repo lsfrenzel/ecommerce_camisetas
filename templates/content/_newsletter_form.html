@@ -1,0 +1,24 @@
+{% load store %}
+<div id="newsletter-box">
+{% if done %}
+  <div class="border-2 border-fg p-6">
+    <p class="display text-2xl">Tá dentro. ✦</p>
+    <p class="mt-2 text-sm text-muted">Inscrição confirmada. Você pode sair a qualquer momento pelo link nos e-mails.</p>
+  </div>
+{% else %}
+  <form method="post" action="{% url 'content:newsletter' %}" hx-post="{% url 'content:newsletter' %}" hx-target="#newsletter-box" hx-swap="outerHTML" class="space-y-4" novalidate>
+    {% csrf_token %}
+    <div class="flex flex-col gap-2 sm:flex-row">
+      <label for="nl-email" class="sr-only">Seu e-mail</label>
+      <input id="nl-email" type="email" name="email" required autocomplete="email" placeholder="seu@email.com" class="input flex-1" value="{{ form.email.value|default:'' }}" {% if form.email.errors %}aria-invalid="true"{% endif %}>
+      <button class="btn btn-dark">Quero receber</button>
+    </div>
+    <div class="hidden" aria-hidden="true"><label>Não preencha <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+    <label class="flex items-start gap-3 text-sm">
+      <input type="checkbox" name="consent" value="1" class="checkbox mt-0.5" required>
+      <span>Aceito receber e-mails sobre lançamentos e promoções. Posso cancelar a qualquer momento. Veja a <a class="link" href="{% url 'content:page' 'politica-de-privacidade' %}">política de privacidade</a>.</span>
+    </label>
+    {% if form.errors %}<div class="error" role="alert">{% for e in form.non_field_errors %}{{ e }} {% endfor %}{% for f in form %}{% for e in f.errors %}{{ e }} {% endfor %}{% endfor %}</div>{% endif %}
+  </form>
+{% endif %}
+</div>

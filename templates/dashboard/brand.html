@@ -1,0 +1,21 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Marca{% endblock %}
+{% block heading %}Configurações da marca{% endblock %}
+{% block content %}
+{% include "dashboard/_subnav.html" %}
+<h1 class="display text-3xl">Marca</h1>
+<p class="help mt-2">Nome, logotipo, cores, textos e contatos aparecem em toda a loja — nada disso está fixo no código.</p>
+<form method="post" enctype="multipart/form-data" class="mt-6 space-y-6" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="error">{{ form.non_field_errors }}</div>{% endif %}
+  {% for title, fields in groups %}
+  <section class="panel p-5">
+    <h2 class="eyebrow">{{ title }}</h2>
+    <div class="mt-4 grid gap-5 md:grid-cols-2">
+      {% for field in fields %}{% include "partials/field.html" with field=field span=field.field.widget.attrs.rows|yesno:"md:col-span-2,," %}{% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+  {% if perms.content.change_brandsettings %}<div class="sticky bottom-0 -mx-4 border-t border-line bg-bg/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"><button class="btn btn-dark">Salvar configurações</button></div>{% endif %}
+</form>
+{% endblock %}

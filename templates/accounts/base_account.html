@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load store %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="shell py-10 lg:py-14">
+  <p class="kicker">Olá, {{ user.get_short_name }}</p>
+  <div class="mt-6 grid gap-10 lg:grid-cols-[220px_1fr]">
+    <nav aria-label="Minha conta" class="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+      <ul class="flex gap-1 whitespace-nowrap lg:flex-col lg:border-l-2 lg:border-line">
+        {% with on="bg-fg text-bg" off="hover:bg-fg/5" %}
+        <li><a href="{% url 'accounts:dashboard' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'dashboard' %}{{ on }}{% else %}{{ off }}{% endif %}">Visão geral</a></li>
+        <li><a href="{% url 'accounts:orders' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'orders' %}{{ on }}{% else %}{{ off }}{% endif %}">Meus pedidos</a></li>
+        <li><a href="{% url 'personalization:mine' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'personalization' %}{{ on }}{% else %}{{ off }}{% endif %}">Personalizações</a></li>
+        <li><a href="{% url 'accounts:profile' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'profile' %}{{ on }}{% else %}{{ off }}{% endif %}">Dados pessoais</a></li>
+        <li><a href="{% url 'accounts:addresses' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'addresses' %}{{ on }}{% else %}{{ off }}{% endif %}">Endereços</a></li>
+        <li><a href="{% url 'accounts:support' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'support' %}{{ on }}{% else %}{{ off }}{% endif %}">Suporte</a></li>
+        <li><a href="{% url 'accounts:preferences' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'preferences' %}{{ on }}{% else %}{{ off }}{% endif %}">Comunicação</a></li>
+        <li><a href="{% url 'accounts:password_change' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'password' %}{{ on }}{% else %}{{ off }}{% endif %}">Senha</a></li>
+        <li><a href="{% url 'accounts:privacy' %}" class="block px-3 py-2 text-sm font-semibold {% if section == 'privacy' %}{{ on }}{% else %}{{ off }}{% endif %}">Privacidade</a></li>
+        {% endwith %}
+        {% if user.is_staff %}<li><a href="{% url 'dashboard:home' %}" class="block px-3 py-2 text-sm font-semibold text-electric hover:bg-fg/5 dark:text-lime">Painel da loja →</a></li>{% endif %}
+        <li><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="block w-full px-3 py-2 text-left text-sm font-semibold text-muted hover:bg-fg/5">Sair</button></form></li>
+      </ul>
+    </nav>
+    <div class="min-w-0">{% block account_content %}{% endblock %}</div>
+  </div>
+</section>
+{% endblock %}

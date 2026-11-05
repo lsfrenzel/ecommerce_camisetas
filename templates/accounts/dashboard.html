@@ -1,0 +1,21 @@
+{% extends "accounts/base_account.html" %}{% load store %}
+{% block title %}Minha conta — {{ brand.store_name }}{% endblock %}
+{% block account_content %}
+<h1 class="display text-display-md">Minha conta</h1>
+<div class="mt-8 grid gap-4 sm:grid-cols-3">
+  <a href="{% url 'accounts:orders' %}" class="panel p-5 transition hover:border-fg"><p class="kicker">Pedidos</p><p class="display mt-6 text-4xl">{{ user.orders.count }}</p></a>
+  <a href="{% url 'accounts:addresses' %}" class="panel p-5 transition hover:border-fg"><p class="kicker">Endereços</p><p class="display mt-6 text-4xl">{{ user.addresses.count }}</p></a>
+  <a href="{% url 'personalization:mine' %}" class="panel p-5 transition hover:border-fg"><p class="kicker">Personalizações</p><p class="display mt-6 text-4xl">{{ user.personalizations.count }}</p></a>
+</div>
+<h2 class="eyebrow mb-4 mt-12">Pedidos recentes</h2>
+{% if orders %}
+<ul class="divide-y divide-line border-y border-line">
+  {% for o in orders %}
+  <li class="flex flex-wrap items-center justify-between gap-3 py-4">
+    <div><p class="font-display font-bold">#{{ o.number }}</p><p class="text-sm text-muted">{{ o.created_at|date:"d/m/Y" }} · {{ o.total|brl }}</p></div>
+    <div class="flex items-center gap-4">{% status_badge o.status o.get_status_display %}<a href="{{ o.get_absolute_url }}" class="link text-sm">Ver</a></div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}<p class="text-muted">Você ainda não fez pedidos.</p>{% endif %}
+{% endblock %}

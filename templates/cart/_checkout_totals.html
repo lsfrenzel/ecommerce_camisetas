@@ -1,0 +1,10 @@
+{% load store %}
+<dl class="mt-4 space-y-2 border-t border-line pt-4 text-sm">
+  <div class="flex justify-between"><dt>Subtotal</dt><dd>{{ summary.subtotal_original|brl }}</dd></div>
+  {% if summary.promotion_discount %}<div class="flex justify-between text-success"><dt>Promoções</dt><dd>− {{ summary.promotion_discount|brl }}</dd></div>{% endif %}
+  {% if summary.personalization_total %}<div class="flex justify-between"><dt>Personalização</dt><dd>{{ summary.personalization_total|brl }}</dd></div>{% endif %}
+  {% if summary.coupon_discount %}<div class="flex justify-between text-success"><dt>Cupom {{ summary.coupon_result.coupon.code }}</dt><dd>− {{ summary.coupon_discount|brl }}</dd></div>{% endif %}
+  {% if summary.coupon_error %}<div class="text-xs text-danger">Cupom: {{ summary.coupon_error }}</div>{% endif %}
+  <div class="flex justify-between"><dt>Frete</dt><dd>{% if summary.effective_shipping is None %}<span class="text-muted">—</span>{% elif summary.effective_shipping == 0 %}Grátis{% else %}{{ summary.effective_shipping|brl }}{% endif %}</dd></div>
+  <div class="flex items-end justify-between border-t border-line pt-3"><dt class="font-display font-bold uppercase">Total</dt><dd class="font-display text-2xl font-bold">{{ summary.total|brl }}</dd></div>
+</dl>

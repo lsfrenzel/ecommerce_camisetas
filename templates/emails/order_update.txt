@@ -1,0 +1,16 @@
+{% load store %}{% autoescape off %}Olá, {{ order.customer_name }}!
+
+{% if kind == "created" %}Recebemos seu pedido #{{ order.number }}. Assim que o pagamento for confirmado, avisaremos por aqui.{% elif kind == "paid" %}Pagamento aprovado! Seu pedido #{{ order.number }} já está em preparação.{% elif kind == "cancelled" %}Seu pedido #{{ order.number }} foi cancelado.{% if order.cancel_reason %} Motivo: {{ order.cancel_reason }}.{% endif %}{% else %}Seu pedido #{{ order.number }} foi atualizado: {{ order.get_status_display }}.{% endif %}
+{% if shipment and shipment.tracking_code %}
+Rastreamento: {{ shipment.tracking_code }} ({{ shipment.carrier }})
+{{ shipment.public_tracking_url }}
+{% endif %}
+Itens:
+{% for i in items %}- {{ i.quantity }}x {{ i.product_name }} ({{ i.variant_label }}) — {{ i.line_total|brl }}
+{% endfor %}
+Total: {{ order.total|brl }}
+
+Acompanhe seu pedido: {{ link }}
+
+{{ brand.store_name }} — {{ brand.slogan }}
+{% endautoescape %}

@@ -1,0 +1,26 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}{{ crud.title }}{% endblock %}
+{% block heading %}{{ crud.title }}{% endblock %}
+{% block content %}
+{% include "dashboard/_subnav.html" %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <h1 class="display text-3xl">{{ crud.title }}</h1>
+  <div class="flex gap-2">
+    {% if crud.search %}<form method="get" class="flex gap-2"><input name="q" value="{{ q }}" class="input py-2" placeholder="Buscar…"><button class="btn btn-outline btn-sm">Buscar</button></form>{% endif %}
+    {% if can_add %}<a href="{% url 'dashboard:'|add:crud.slug|add:'_new' %}" class="btn btn-dark btn-sm">{% icon "plus" 16 %} Novo(a)</a>{% endif %}
+  </div>
+</div>
+{% if crud.help %}<p class="help mt-3 max-w-3xl">{{ crud.help }}</p>{% endif %}
+<div class="panel mt-6 overflow-x-auto">
+  <table class="table-clean min-w-[560px]">
+    <thead><tr>{% for c, label in crud.columns %}<th class="first:pl-4">{{ label }}</th>{% endfor %}<th></th></tr></thead>
+    <tbody>
+      {% for obj, values in rows %}
+      <tr>{% for v in values %}<td class="first:pl-4 {% if forloop.first %}font-semibold{% endif %}">{{ v }}</td>{% endfor %}
+        <td class="pr-4 text-right"><a class="link" href="{% url 'dashboard:'|add:crud.slug|add:'_edit' obj.pk %}">Editar</a></td></tr>
+      {% empty %}<tr><td colspan="99" class="pl-4 text-muted">Nenhum registro.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}

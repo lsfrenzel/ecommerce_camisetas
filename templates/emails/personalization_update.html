@@ -1,0 +1,8 @@
+<!doctype html><html lang="pt-BR"><body style="font-family:Arial,sans-serif;background:#F7F5F0;color:#171717;padding:24px">
+<div style="max-width:520px;margin:auto;background:#fff;border:1px solid #DEDEDA;padding:28px">
+<p style="text-transform:uppercase;letter-spacing:2px;font-weight:bold">{{ brand.store_name }}</p>
+<h1 style="text-transform:uppercase;font-size:22px">Personalização: {{ p.get_status_display }}</h1>
+<p>Olá, {{ p.name }}! Sua personalização ({{ p.product.name }} — {{ p.placement.name }}) foi analisada.</p>
+{% if p.admin_notes %}<p style="border-left:4px solid #C7FF3D;padding-left:12px">{{ p.admin_notes|linebreaksbr }}</p>{% endif %}
+<p><a href="{{ link }}" style="display:inline-block;background:#C7FF3D;color:#171717;padding:14px 22px;text-decoration:none;font-weight:bold;text-transform:uppercase">{% if p.status == "approved" %}Comprar agora{% else %}Ver detalhes{% endif %}</a></p>
+</div></body></html>

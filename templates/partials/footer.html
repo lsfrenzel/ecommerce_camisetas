@@ -1,0 +1,53 @@
+{% load store %}
+<footer class="mt-24 bg-inverse text-on-inverse">
+  <div class="shell grid gap-12 py-16 lg:grid-cols-12">
+    <div class="lg:col-span-5">
+      <p class="font-display text-display-md font-bold uppercase">{{ brand.slogan }}</p>
+      <p class="mt-4 max-w-sm text-sm opacity-70">{{ brand.origin_label }}</p>
+      <div class="mt-8 flex gap-1">
+        {% if brand.instagram_url %}<a href="{{ brand.instagram_url }}" class="icon-btn text-on-inverse hover:bg-on-inverse/10" rel="noopener" target="_blank" aria-label="Instagram">{% icon "instagram" 22 %}</a>{% endif %}
+        {% if brand.tiktok_url %}<a href="{{ brand.tiktok_url }}" class="icon-btn text-on-inverse hover:bg-on-inverse/10" rel="noopener" target="_blank" aria-label="TikTok">{% icon "tiktok" 22 %}</a>{% endif %}
+        {% if brand.youtube_url %}<a href="{{ brand.youtube_url }}" class="icon-btn text-on-inverse hover:bg-on-inverse/10" rel="noopener" target="_blank" aria-label="YouTube">{% icon "youtube" 22 %}</a>{% endif %}
+        {% if brand.whatsapp_link %}<a href="{{ brand.whatsapp_link }}" class="icon-btn text-on-inverse hover:bg-on-inverse/10" rel="noopener" target="_blank" aria-label="WhatsApp">{% icon "whatsapp" 22 %}</a>{% endif %}
+      </div>
+    </div>
+    <nav class="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-7" aria-label="Rodapé">
+      <div>
+        <p class="eyebrow mb-4 text-lime">Loja</p>
+        <ul class="space-y-2.5 text-sm opacity-85">
+          <li><a class="link-slide" href="{% url 'catalog:shop' %}">Camisetas</a></li>
+          <li><a class="link-slide" href="{% url 'catalog:shop' %}?modelagem=oversized">Oversized</a></li>
+          <li><a class="link-slide" href="{% url 'catalog:collections' %}">Coleções</a></li>
+          <li><a class="link-slide" href="{% url 'personalization:start' %}">Personalize</a></li>
+          <li><a class="link-slide" href="{% url 'content:faq' %}">Perguntas frequentes</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="eyebrow mb-4 text-lime">Ajuda</p>
+        <ul class="space-y-2.5 text-sm opacity-85">
+          {% for p in footer_pages %}<li><a class="link-slide" href="{% url 'content:page' p.slug %}">{{ p.title }}</a></li>{% endfor %}
+          <li><a class="link-slide" href="{% url 'accounts:dashboard' %}">Minha conta</a></li>
+        </ul>
+      </div>
+      <div class="col-span-2 sm:col-span-1">
+        <p class="eyebrow mb-4 text-lime">Contato</p>
+        <ul class="space-y-2.5 text-sm opacity-85">
+          {% if brand.whatsapp_link %}<li><a class="link-slide" href="{{ brand.whatsapp_link }}" target="_blank" rel="noopener">WhatsApp</a></li>{% endif %}
+          {% if brand.contact_email %}<li><a class="link-slide" href="mailto:{{ brand.contact_email }}">{{ brand.contact_email }}</a></li>{% endif %}
+          {% if brand.contact_phone %}<li>{{ brand.contact_phone }}</li>{% endif %}
+          <li><a class="link-slide" href="{% url 'accounts:privacy' %}">Seus dados (LGPD)</a></li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+  <div class="border-t border-on-inverse/15">
+    <div class="shell flex flex-col gap-2 py-6 text-xs opacity-60 sm:flex-row sm:items-center sm:justify-between">
+      <p>
+        © {% now "Y" %} {{ brand.company_name|default:brand.store_name }}
+        {% if brand.cnpj %} · CNPJ {{ brand.cnpj }}{% endif %}
+        {% if brand.company_address %} · {{ brand.company_address }}{% endif %}
+      </p>
+      <p>Pagamentos processados com segurança pelo Mercado Pago.</p>
+    </div>
+  </div>
+</footer>

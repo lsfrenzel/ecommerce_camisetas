@@ -1,0 +1,116 @@
+{% load store %}
+{% if summary.is_empty %}
+  <div class="grid-texture border border-dashed border-line px-6 py-20 text-center">
+    <p class="display text-3xl">Seu carrinho está vazio.</p>
+    <p class="mx-auto mt-3 max-w-sm text-muted">Que tal começar pelo drop mais recente?</p>
+    <a href="{% url 'catalog:shop' %}" class="btn btn-dark mt-8">Ver camisetas</a>
+  </div>
+{% else %}
+<div class="grid gap-10 lg:grid-cols-12">
+  <div class="lg:col-span-8">
+    {% if messages %}{% for m in messages %}<p class="mb-4 border-l-4 {% if m.tags == 'error' %}border-danger{% else %}border-lime{% endif %} bg-surface p-3 text-sm" role="status">{{ m }}</p>{% endfor %}{% endif %}
+    <ul class="divide-y divide-line border-y border-line">
+      {% for line in summary.lines %}
+      <li class="flex gap-4 py-5">
+        <a href="{{ line.product.get_absolute_url }}" class="product-media w-24 shrink-0 sm:w-28">
+          {% with img=line.product.primary_image %}{% if img %}<img src="{{ img.thumb_url }}" alt="{{ img.alt_text }}" loading="lazy" width="120" height="150">{% endif %}{% endwith %}
+        </a>
+        <div class="flex min-w-0 flex-1 flex-col">
+          <div class="flex justify-between gap-3">
+            <div class="min-w-0">
+              <a href="{{ line.product.get_absolute_url }}" class="font-display font-semibold uppercase leading-tight hover:underline">{{ line.product.name }}</a>
+              <p class="mt-1 text-sm text-muted">{{ line.variant.get_fit_display }} · {{ line.variant.color.name }} · {{ line.variant.size.name }}</p>
+              {% if line.item.personalization %}
+                <p class="mt-1 text-sm"><span class="tag tag-lime">Personalizada</span> {{ line.item.personalization.placement.name }} (+{{ line.personalization_fee|brl }}/un.)</p>
+              {% endif %}
+            </div>
+            <div class="text-right">
+              {% if line.price.on_sale %}<p class="price-old">{{ line.price.base|brl }}</p>{% endif %}
+              <p class="font-display font-bold">{{ line.unit_total|brl }}</p>
+            </div>
+          </div>
+          {% if line.problem %}<p class="mt-2 text-sm font-semibold text-danger" role="alert">{{ line.problem }}</p>{% endif %}
+          <div class="mt-auto flex items-center justify-between pt-3">
+            {% if line.item.personalization %}
+              <span class="text-sm text-muted">Qtd.: {{ line.quantity }}</span>
+            {% else %}
+            <form method="post" action="{% url 'cart:update' line.item.pk %}" hx-post="{% url 'cart:update' line.item.pk %}" hx-target="#cart-body" class="flex items-center border border-line">
+              {% csrf_token %}
+              <button name="quantity" value="{{ line.quantity|add:-1 }}" class="icon-btn h-9 w-9" aria-label="Diminuir">{% icon "minus" 14 %}</button>
+              <span class="w-8 text-center font-display font-bold" aria-label="Quantidade">{{ line.quantity }}</span>
+              <button name="quantity" value="{{ line.quantity|add:1 }}" class="icon-btn h-9 w-9" aria-label="Aumentar" {% if line.quantity >= line.variant.available %}disabled{% endif %}>{% icon "plus" 14 %}</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'cart:remove' line.item.pk %}" hx-post="{% url 'cart:remove' line.item.pk %}" hx-target="#cart-body">
+              {% csrf_token %}
+              <button class="flex items-center gap-1 text-sm text-muted hover:text-danger">{% icon "trash" 16 %} Remover</button>
+            </form>
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'catalog:shop' %}" class="link-slide mt-6 inline-block text-sm font-semibold">← Continuar comprando</a>
+  </div>
+
+  <aside class="lg:col-span-4">
+    <div class="panel sticky top-[calc(var(--header-h)+16px)] p-5 sm:p-6">
+      <h2 class="eyebrow">Resumo</h2>
+
+      <form class="mt-5" method="post" action="{% url 'cart:shipping' %}" hx-post="{% url 'cart:shipping' %}" hx-target="#cart-body">
+        {% csrf_token %}
+        <label for="cart-cep" class="label">Frete</label>
+        <div class="flex gap-2">
+          <input id="cart-cep" name="cep" value="{{ cart.shipping_cep }}" class="input py-2.5" placeholder="Seu CEP" data-mask="99999-999" inputmode="numeric" autocomplete="postal-code">
+          <button class="btn btn-outline btn-sm">OK</button>
+        </div>
+        {% if ship_error %}<p class="error">{{ ship_error }}</p>{% endif %}
+        {% if options %}
+        <fieldset class="mt-3 space-y-2">
+          <legend class="sr-only">Opções de entrega</legend>
+          {% for o in options %}
+          <label class="flex cursor-pointer items-center justify-between gap-3 border border-line p-3 text-sm has-[:checked]:border-fg">
+            <span class="flex items-center gap-3">
+              <input type="radio" name="shipping_code" value="{{ o.code }}" class="h-4 w-4" {% if o.code == cart.shipping_choice %}checked{% endif %} hx-post="{% url 'cart:shipping' %}" hx-target="#cart-body" hx-include="closest form">
+              <span><span class="font-semibold">{{ o.name }}</span><span class="block text-xs text-muted">{{ o.eta }}</span></span>
+            </span>
+            <span class="font-display font-bold">{% if o.is_free %}Grátis{% else %}{{ o.price|brl }}{% endif %}</span>
+          </label>
+          {% endfor %}
+        </fieldset>
+        {% elif cart.shipping_cep and not ship_error %}
+          <p class="help">Nenhuma opção de entrega disponível para este CEP no momento. Fale com a gente pelo WhatsApp.</p>
+        {% endif %}
+      </form>
+
+      <div class="mt-5 border-t border-line pt-5">
+        {% if cart.coupon and summary.coupon_result %}
+          <div class="flex items-center justify-between text-sm">
+            <span class="tag tag-lime">{{ cart.coupon.code }}</span>
+            <form method="post" action="{% url 'cart:coupon_remove' %}" hx-post="{% url 'cart:coupon_remove' %}" hx-target="#cart-body">{% csrf_token %}<button class="text-muted underline">remover</button></form>
+          </div>
+        {% else %}
+          <form method="post" action="{% url 'cart:coupon' %}" hx-post="{% url 'cart:coupon' %}" hx-target="#cart-body" class="flex gap-2">
+            {% csrf_token %}
+            <label for="coupon" class="sr-only">Cupom</label>
+            <input id="coupon" name="code" class="input py-2.5 uppercase" placeholder="Cupom de desconto" autocomplete="off">
+            <button class="btn btn-outline btn-sm">Aplicar</button>
+          </form>
+          {% if summary.coupon_error %}<p class="error">{{ summary.coupon_error }}</p>{% endif %}
+        {% endif %}
+      </div>
+
+      <dl class="mt-5 space-y-2 border-t border-line pt-5 text-sm">
+        <div class="flex justify-between"><dt>Subtotal</dt><dd>{{ summary.subtotal_original|brl }}</dd></div>
+        {% if summary.promotion_discount %}<div class="flex justify-between text-success"><dt>Promoções</dt><dd>− {{ summary.promotion_discount|brl }}</dd></div>{% endif %}
+        {% if summary.personalization_total %}<div class="flex justify-between"><dt>Personalização</dt><dd>{{ summary.personalization_total|brl }}</dd></div>{% endif %}
+        {% if summary.coupon_discount %}<div class="flex justify-between text-success"><dt>Cupom</dt><dd>− {{ summary.coupon_discount|brl }}</dd></div>{% endif %}
+        <div class="flex justify-between"><dt>Frete</dt><dd>{% if summary.effective_shipping is None %}<span class="text-muted">Calcule acima</span>{% elif summary.effective_shipping == 0 %}Grátis{% else %}{{ summary.effective_shipping|brl }}{% endif %}</dd></div>
+        <div class="flex items-end justify-between border-t border-line pt-3"><dt class="font-display font-bold uppercase">Total</dt><dd class="font-display text-2xl font-bold">{{ summary.total|brl }}</dd></div>
+      </dl>
+      <a href="{% url 'cart:checkout' %}" class="btn btn-primary btn-block mt-5 {% if summary.has_problems %}pointer-events-none opacity-40{% endif %}" {% if summary.has_problems %}aria-disabled="true"{% endif %}>Finalizar compra</a>
+      <p class="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted">{% icon "lock" 14 %} Pagamento seguro via Mercado Pago</p>
+    </div>
+  </aside>
+</div>
+{% endif %}

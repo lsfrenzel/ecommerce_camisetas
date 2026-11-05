@@ -1,0 +1,13 @@
+{% extends "accounts/base_account.html" %}{% load store %}
+{% block title %}Minhas personalizações{% endblock %}
+{% block account_content %}
+<div class="flex items-center justify-between gap-4"><h1 class="display text-3xl">Personalizações</h1><a href="{% url 'personalization:start' %}" class="btn btn-dark btn-sm">Nova</a></div>
+<ul class="mt-6 divide-y divide-line border-y border-line">
+  {% for p in items %}
+  <li class="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
+    <div><p class="font-semibold">{{ p.product.name }} — {{ p.placement.name }}</p><p class="text-muted">{{ p.created_at|date:"d/m/Y" }} · {{ p.variant.color.name }} {{ p.variant.size.name }} · {{ p.quantity }} un.</p></div>
+    <div class="flex items-center gap-4">{% status_badge p.status p.get_status_display %}<a class="link" href="{{ p.get_absolute_url }}">Ver</a></div>
+  </li>
+  {% empty %}<li class="py-6 text-muted">Nenhuma personalização ainda.</li>{% endfor %}
+</ul>
+{% endblock %}

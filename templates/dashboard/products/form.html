@@ -1,0 +1,135 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}{% if product %}{{ product.name }}{% else %}Novo produto{% endif %}{% endblock %}
+{% block heading %}Produtos{% endblock %}
+{% block content %}
+<a href="{% url 'dashboard:products' %}" class="kicker hover:text-fg">← Produtos</a>
+<div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+  <h1 class="display text-3xl">{% if product %}{{ product.name }}{% else %}Novo produto{% endif %}</h1>
+  {% if product %}
+  <div class="flex flex-wrap gap-2">
+    <a href="{{ product.get_absolute_url }}" target="_blank" class="btn btn-ghost btn-sm">{% icon "external" 16 %} Ver na loja</a>
+    {% if perms.catalog.add_product %}<form method="post" action="{% url 'dashboard:product_duplicate' product.pk %}">{% csrf_token %}<button class="btn btn-outline btn-sm">Duplicar</button></form>{% endif %}
+    {% if perms.catalog.change_product %}<form method="post" action="{% url 'dashboard:product_archive' product.pk %}" onsubmit="return confirm('Confirmar?')">{% csrf_token %}<button class="btn btn-danger btn-sm">{% if product.status == 'archived' %}Restaurar{% else %}Arquivar{% endif %}</button></form>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<form method="post" enctype="multipart/form-data" class="mt-6 space-y-6" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="error">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="grid gap-6 xl:grid-cols-3">
+    <section class="panel space-y-5 p-5 xl:col-span-2">
+      <h2 class="eyebrow">Informações</h2>
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% include "partials/field.html" with field=form.name span="sm:col-span-2" %}
+        {% include "partials/field.html" with field=form.sku_base %}
+        {% include "partials/field.html" with field=form.slug %}
+        {% include "partials/field.html" with field=form.category %}
+        {% include "partials/field.html" with field=form.badge %}
+        {% include "partials/field.html" with field=form.collections span="sm:col-span-2" %}
+        {% include "partials/field.html" with field=form.short_description span="sm:col-span-2" %}
+        {% include "partials/field.html" with field=form.description span="sm:col-span-2" %}
+        {% include "partials/field.html" with field=form.fabric %}
+        {% include "partials/field.html" with field=form.composition %}
+        {% include "partials/field.html" with field=form.fit_description %}
+        {% include "partials/field.html" with field=form.size_chart %}
+        {% include "partials/field.html" with field=form.care_instructions span="sm:col-span-2" %}
+      </div>
+    </section>
+    <div class="space-y-6">
+      <section class="panel space-y-4 p-5">
+        <h2 class="eyebrow">Publicação</h2>
+        {% include "partials/field.html" with field=form.status %}
+        {% include "partials/field.html" with field=form.is_featured %}
+        {% include "partials/field.html" with field=form.is_customizable %}
+      </section>
+      <section class="panel space-y-4 p-5">
+        <h2 class="eyebrow">Preços</h2>
+        {% include "partials/field.html" with field=form.price %}
+        {% include "partials/field.html" with field=form.compare_at_price %}
+        {% if perms.orders.view_financials %}{% include "partials/field.html" with field=form.cost_price %}{% endif %}
+        {% include "partials/field.html" with field=form.sale_price %}
+        {% include "partials/field.html" with field=form.sale_starts_at %}
+        {% include "partials/field.html" with field=form.sale_ends_at %}
+      </section>
+      <section class="panel space-y-4 p-5">
+        <h2 class="eyebrow">Frete (embalagem)</h2>
+        <div class="grid grid-cols-2 gap-3">
+          {% include "partials/field.html" with field=form.weight_grams %}
+          {% include "partials/field.html" with field=form.length_cm %}
+          {% include "partials/field.html" with field=form.width_cm %}
+          {% include "partials/field.html" with field=form.height_cm %}
+        </div>
+      </section>
+      <section class="panel space-y-4 p-5">
+        <h2 class="eyebrow">SEO</h2>
+        {% include "partials/field.html" with field=form.seo_title %}
+        {% include "partials/field.html" with field=form.seo_description %}
+      </section>
+    </div>
+  </div>
+
+  <section class="panel p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="eyebrow">Variações (SKU)</h2>
+      <p class="help">O estoque é alterado em <a class="link" href="{% url 'dashboard:inventory' %}">Estoque</a> (com histórico).</p></div>
+    {{ variants.management_form }}
+    {% if variants.non_form_errors %}<div class="error mt-3">{{ variants.non_form_errors }}</div>{% endif %}
+    <div class="mt-4 overflow-x-auto">
+      <table class="table-clean min-w-[900px]">
+        <thead><tr><th>Cor</th><th>Tamanho</th><th>Modelagem</th><th>SKU</th><th>Preço específico</th><th>Mínimo</th><th>Ativa</th><th>Estoque</th></tr></thead>
+        <tbody>
+          {% for f in variants %}
+          <tr>{% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+            <td>{{ f.color }}{{ f.color.errors }}</td><td>{{ f.size }}{{ f.size.errors }}</td><td>{{ f.fit }}</td>
+            <td>{{ f.sku }}{% for e in f.sku.errors %}<p class="error">{{ e }}</p>{% endfor %}</td><td>{{ f.price_override }}</td><td class="w-24">{{ f.low_stock_threshold }}</td><td>{{ f.is_active }}</td>
+            <td class="whitespace-nowrap text-sm">{% if f.instance.pk %}{{ f.instance.stock }} <span class="text-muted">({{ f.instance.reserved }} res.)</span> <a class="link text-xs" href="{% url 'dashboard:inventory' %}?v={{ f.instance.pk }}">movimentar</a>{% else %}—{% endif %}</td>
+          </tr>
+          {% for e in f.non_field_errors %}<tr><td colspan="8" class="error">{{ e }}</td></tr>{% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel p-5">
+    <h2 class="eyebrow">Imagens</h2>
+    <p class="help">Envie PNG, JPEG ou WebP (até 12 MB). As imagens são convertidas para WebP otimizado com miniatura. Marque “ilustrativa” para mockups.</p>
+    {{ images.management_form }}
+    {% if images.non_form_errors %}<div class="error mt-3">{{ images.non_form_errors }}</div>{% endif %}
+    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {% for f in images %}
+      <div class="border border-line p-4 text-sm">
+        {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+        {% if f.instance.pk %}<div class="product-media mb-3"><img src="{{ f.instance.thumb_url }}" alt="" loading="lazy"></div>{% endif %}
+        <div class="space-y-3">
+          {% include "partials/field.html" with field=f.image %}
+          <div class="grid grid-cols-2 gap-3">{% include "partials/field.html" with field=f.view %}{% include "partials/field.html" with field=f.color %}</div>
+          {% include "partials/field.html" with field=f.alt %}
+          <div class="grid grid-cols-2 items-end gap-3">{% include "partials/field.html" with field=f.position %}{% include "partials/field.html" with field=f.is_illustrative %}</div>
+          {% if f.instance.pk %}<label class="flex items-center gap-2 text-danger">{{ f.DELETE }} Remover imagem</label>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="sticky bottom-0 -mx-4 flex gap-3 border-t border-line bg-bg/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    {% if product and perms.catalog.change_product or not product and perms.catalog.add_product %}<button class="btn btn-dark">Salvar produto</button>{% endif %}
+    <a href="{% url 'dashboard:products' %}" class="btn btn-ghost">Voltar</a>
+  </div>
+</form>
+
+{% if generate_form and perms.catalog.add_productvariant %}
+<section class="panel mt-8 p-5">
+  <h2 class="eyebrow">Gerar variações em grade</h2>
+  <p class="help">Cria todas as combinações cor × tamanho que ainda não existem, com SKU automático e entrada de estoque inicial registrada no histórico.</p>
+  <form method="post" action="{% url 'dashboard:product_generate_variants' product.pk %}" class="mt-4 grid gap-5 md:grid-cols-4">
+    {% csrf_token %}
+    <fieldset><legend class="label">Cores</legend><div class="space-y-1 text-sm">{% for c in generate_form.colors %}<label class="flex items-center gap-2">{{ c.tag }} {{ c.choice_label }}</label>{% endfor %}</div></fieldset>
+    <fieldset><legend class="label">Tamanhos</legend><div class="flex flex-wrap gap-3 text-sm">{% for s in generate_form.sizes %}<label class="flex items-center gap-1">{{ s.tag }} {{ s.choice_label }}</label>{% endfor %}</div></fieldset>
+    <div class="space-y-3">{% include "partials/field.html" with field=generate_form.fit %}{% include "partials/field.html" with field=generate_form.initial_stock %}</div>
+    <div class="flex items-end"><button class="btn btn-outline">Gerar variações</button></div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

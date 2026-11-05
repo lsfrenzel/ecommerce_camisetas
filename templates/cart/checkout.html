@@ -1,0 +1,99 @@
+{% extends "base.html" %}{% load store %}
+{% block title %}Finalizar compra — {{ brand.store_name }}{% endblock %}
+{% block content %}
+<section class="shell py-10 lg:py-14">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <h1 class="display text-display-md">Finalizar compra</h1>
+    <p class="flex items-center gap-2 text-sm text-muted">{% icon "lock" 16 %} Ambiente seguro</p>
+  </div>
+
+  {% if not gateway_configured %}
+  <div class="mt-6 border-2 border-orange bg-orange/10 p-4 text-sm" role="alert">
+    <p class="font-display font-bold uppercase">Pagamento online ainda não ativado</p>
+    {% if user.is_staff %}
+      <p class="mt-1">Configure <code>MERCADOPAGO_ACCESS_TOKEN</code>, <code>MERCADOPAGO_PUBLIC_KEY</code> e <code>MERCADOPAGO_WEBHOOK_SECRET</code> nas variáveis de ambiente (veja o README, seção “Mercado Pago”).
+      {% if gateway_ready %}Modo de desenvolvimento: o pedido será criado como <strong>aguardando pagamento</strong> e nunca será marcado como pago automaticamente.{% endif %}</p>
+    {% else %}
+      <p class="mt-1">{% if gateway_ready %}Seu pedido será registrado como aguardando pagamento e nossa equipe entrará em contato.{% else %}No momento não é possível concluir compras pelo site. Fale com a gente pelo WhatsApp.{% endif %}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if not user.is_authenticated %}
+  <p class="mt-6 text-sm">Já tem conta? <a class="link font-semibold" href="{% url 'accounts:login' %}?next={% url 'cart:checkout' %}">Entre</a> para usar seus endereços salvos. Ou continue como visitante.</p>
+  {% endif %}
+
+  <form method="post" class="mt-8 grid gap-10 lg:grid-cols-12" novalidate x-data>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="error lg:col-span-12" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="space-y-10 lg:col-span-7">
+      <fieldset>
+        <legend class="eyebrow mb-5 flex items-center gap-3"><span class="grid h-7 w-7 place-items-center bg-fg text-bg">1</span> Seus dados</legend>
+        <div class="grid gap-4 sm:grid-cols-2">
+          {% include "partials/field.html" with field=form.email span="sm:col-span-2" %}
+          {% include "partials/field.html" with field=form.full_name span="sm:col-span-2" %}
+          {% include "partials/field.html" with field=form.phone %}
+          {% include "partials/field.html" with field=form.cpf %}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="eyebrow mb-5 flex items-center gap-3"><span class="grid h-7 w-7 place-items-center bg-fg text-bg">2</span> Entrega</legend>
+        <div class="grid gap-4 sm:grid-cols-6">
+          <div class="sm:col-span-2">
+            <label for="{{ form.cep.id_for_label }}" class="label">{{ form.cep.label }}</label>
+            <input type="text" name="cep" id="{{ form.cep.id_for_label }}" value="{{ form.cep.value|default:'' }}" class="input" data-mask="99999-999" inputmode="numeric" autocomplete="postal-code"
+                   onblur="lookupCep(this)" hx-get="{% url 'cart:checkout_shipping' %}" hx-trigger="keyup changed delay:500ms, blur" hx-target="#shipping-options" hx-include="[name=shipping_code]:checked" {% if form.cep.errors %}aria-invalid="true"{% endif %} required>
+            {% for e in form.cep.errors %}<p class="error">{{ e }}</p>{% endfor %}
+          </div>
+          {% include "partials/field.html" with field=form.street span="sm:col-span-4" %}
+          {% include "partials/field.html" with field=form.number span="sm:col-span-2" %}
+          {% include "partials/field.html" with field=form.complement span="sm:col-span-4" %}
+          {% include "partials/field.html" with field=form.neighborhood span="sm:col-span-2" %}
+          {% include "partials/field.html" with field=form.city span="sm:col-span-3" %}
+          {% include "partials/field.html" with field=form.state span="sm:col-span-1" %}
+        </div>
+        <div class="mt-6">
+          <p class="label">Modalidade de entrega</p>
+          <div id="shipping-options">{% include "cart/_checkout_shipping.html" with cep=form.cep.value %}</div>
+          {% for e in form.shipping_code.errors %}<p class="error">{{ e }}</p>{% endfor %}
+        </div>
+        <div class="mt-6">{% include "partials/field.html" with field=form.notes %}</div>
+      </fieldset>
+
+      <fieldset class="space-y-3">
+        <legend class="eyebrow mb-5 flex items-center gap-3"><span class="grid h-7 w-7 place-items-center bg-fg text-bg">3</span> Confirmação</legend>
+        <label class="flex items-start gap-3 text-sm">{{ form.accept_terms }}<span>Li e aceito os <a class="link" target="_blank" href="{% url 'content:page' 'termos-de-uso' %}">termos de compra</a>, a <a class="link" target="_blank" href="{% url 'content:page' 'trocas-e-devolucoes' %}">política de trocas</a> e a <a class="link" target="_blank" href="{% url 'content:page' 'politica-de-privacidade' %}">política de privacidade</a>.</span></label>
+        {% for e in form.accept_terms.errors %}<p class="error">{{ e }}</p>{% endfor %}
+        <label class="flex items-start gap-3 text-sm">{{ form.marketing_opt_in }}<span>{{ form.marketing_opt_in.label }} <span class="text-muted">(opcional)</span></span></label>
+        {% if form.save_address %}<label class="flex items-start gap-3 text-sm">{{ form.save_address }}<span>{{ form.save_address.label }}</span></label>{% endif %}
+      </fieldset>
+    </div>
+
+    <aside class="lg:col-span-5">
+      <div class="panel sticky top-[calc(var(--header-h)+16px)] p-5 sm:p-6">
+        <h2 class="eyebrow">Seu pedido</h2>
+        <ul class="mt-4 divide-y divide-line">
+          {% for line in summary.lines %}
+          <li class="flex gap-3 py-3">
+            <div class="product-media w-14 shrink-0">{% with img=line.product.primary_image %}{% if img %}<img src="{{ img.thumb_url }}" alt="" width="60" height="75" loading="lazy">{% endif %}{% endwith %}
+              <span class="absolute -right-1 -top-1 grid h-5 min-w-[20px] place-items-center bg-fg px-1 text-[10px] font-bold text-bg">{{ line.quantity }}</span></div>
+            <div class="min-w-0 flex-1 text-sm">
+              <p class="truncate font-semibold">{{ line.product.name }}</p>
+              <p class="text-muted">{{ line.variant.color.name }} · {{ line.variant.size.name }}{% if line.item.personalization %} · personalizada{% endif %}</p>
+              {% if line.problem %}<p class="font-semibold text-danger">{{ line.problem }}</p>{% endif %}
+            </div>
+            <p class="text-sm font-semibold">{{ line.line_total|brl }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        <div id="checkout-totals">{% include "cart/_checkout_totals.html" %}</div>
+        <button type="submit" class="btn btn-primary btn-block mt-6" {% if not gateway_ready %}disabled{% endif %}>
+          {% if gateway_configured %}Ir para o pagamento{% else %}Registrar pedido{% endif %} {% icon "arrow-right" 18 %}
+        </button>
+        <p class="mt-3 text-center text-xs text-muted">{% if gateway_configured %}Você será direcionado ao checkout oficial do Mercado Pago (Pix, cartão e outros meios habilitados).{% endif %} O estoque fica reservado por tempo limitado até a confirmação do pagamento.</p>
+      </div>
+    </aside>
+  </form>
+</section>
+{% endblock %}

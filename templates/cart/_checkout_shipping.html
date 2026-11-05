@@ -1,0 +1,23 @@
+{% load store %}
+{% if ship_error and cep %}
+  <p class="error">{{ ship_error }}</p>
+{% elif options %}
+  <div class="space-y-2" role="radiogroup">
+    {% for o in options %}
+    <label class="flex cursor-pointer items-center justify-between gap-3 border border-line bg-surface p-4 text-sm transition has-[:checked]:border-fg has-[:checked]:shadow-[3px_3px_0_0_rgb(var(--c-fg))]">
+      <span class="flex items-center gap-3">
+        <input type="radio" name="shipping_code" value="{{ o.code }}" class="h-4 w-4 accent-current" {% if chosen and o.code == chosen.code %}checked{% endif %} required
+               hx-get="{% url 'cart:checkout_shipping' %}" hx-include="[name=cep]" hx-target="#shipping-options" hx-trigger="change">
+        <span><span class="font-semibold">{{ o.name }}</span>{% if o.eta %}<span class="block text-xs text-muted">{{ o.eta }}</span>{% endif %}
+          {% if o.instructions %}<span class="block text-xs text-muted">{{ o.instructions|linebreaksbr }}</span>{% endif %}</span>
+      </span>
+      <span class="font-display font-bold">{% if o.is_free %}Grátis{% else %}{{ o.price|brl }}{% endif %}</span>
+    </label>
+    {% endfor %}
+  </div>
+{% elif cep %}
+  <p class="help">Nenhuma modalidade de entrega disponível para este CEP. Entre em contato pelo WhatsApp.</p>
+{% else %}
+  <p class="help">Informe o CEP para ver as opções de entrega.</p>
+{% endif %}
+{% if request.headers.HX_Request %}<div id="checkout-totals" hx-swap-oob="true">{% include "cart/_checkout_totals.html" %}</div>{% endif %}

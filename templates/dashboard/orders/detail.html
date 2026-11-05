@@ -1,0 +1,129 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}Pedido #{{ order.number }}{% endblock %}
+{% block heading %}Pedidos{% endblock %}
+{% block content %}
+<a href="{% url 'dashboard:orders' %}" class="kicker hover:text-fg">← Pedidos</a>
+<div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="display text-3xl">Pedido #{{ order.number }}</h1>
+    <p class="mt-1 text-sm text-muted">{{ order.created_at|date:"d/m/Y H:i" }} · {{ order.get_source_display }}{% if order.paid_at %} · pago em {{ order.paid_at|date:"d/m/Y H:i" }}{% endif %}</p>
+  </div>
+  <div class="flex flex-wrap gap-2">{% status_badge order.status order.get_status_display %}{% status_badge order.payment_status order.get_payment_status_display %}</div>
+</div>
+
+{% if order.needs_attention %}
+<div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-2 border-orange bg-orange/10 p-4 text-sm">
+  <p class="flex items-center gap-2 font-semibold">{% icon "alert" 18 %} {{ order.attention_reason }}</p>
+  {% if perms.orders.change_order %}<form method="post" action="{% url 'dashboard:order_resolve' order.number %}">{% csrf_token %}<button class="btn btn-outline btn-sm">Marcar como resolvido</button></form>{% endif %}
+</div>
+{% endif %}
+
+<div class="mt-6 grid gap-6 xl:grid-cols-3">
+  <div class="space-y-6 xl:col-span-2">
+    <section class="panel p-5">
+      <h2 class="eyebrow">Itens (valores registrados na compra)</h2>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean min-w-[600px]">
+          <thead><tr><th>Produto</th><th>SKU</th><th class="text-right">Qtd.</th><th class="text-right">Unitário</th>{% if can_cost %}<th class="text-right">Custo un.</th>{% endif %}<th class="text-right">Total</th></tr></thead>
+          <tbody>
+            {% for i in items %}
+            <tr><td>{{ i.product_name }}<div class="text-xs text-muted">{{ i.variant_label }}</div>
+              {% if i.personalization %}<a class="link text-xs" href="{% url 'dashboard:personalization_detail' i.personalization.public_id %}">Personalização · {{ i.personalization.placement.name }} (+{{ i.personalization_fee|brl }})</a>{% endif %}</td>
+              <td class="font-mono text-xs">{{ i.sku }}</td><td class="text-right">{{ i.quantity }}</td>
+              <td class="text-right">{% if i.unit_price < i.original_unit_price %}<span class="price-old">{{ i.original_unit_price|brl }}</span><br>{% endif %}{{ i.unit_total|brl }}</td>
+              {% if can_cost %}<td class="text-right text-muted">{{ i.unit_cost|brl }}</td>{% endif %}
+              <td class="text-right font-semibold">{{ i.line_total|brl }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <dl class="ml-auto mt-4 max-w-xs space-y-1 text-sm">
+        <div class="flex justify-between"><dt>Subtotal</dt><dd>{{ order.subtotal|brl }}</dd></div>
+        {% if order.promotion_discount %}<div class="flex justify-between"><dt>Promoções</dt><dd>− {{ order.promotion_discount|brl }}</dd></div>{% endif %}
+        {% if order.personalization_total %}<div class="flex justify-between"><dt>Personalização</dt><dd>{{ order.personalization_total|brl }}</dd></div>{% endif %}
+        {% if order.coupon_discount %}<div class="flex justify-between"><dt>Cupom {{ order.coupon_code }}</dt><dd>− {{ order.coupon_discount|brl }}</dd></div>{% endif %}
+        <div class="flex justify-between"><dt>Frete · {{ order.shipping_name }}</dt><dd>{{ order.shipping_cost|brl }}</dd></div>
+        <div class="flex justify-between border-t border-line pt-2 font-display text-lg font-bold"><dt>Total</dt><dd>{{ order.total|brl }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel p-5">
+      <h2 class="eyebrow">Pagamentos</h2>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean min-w-[560px]">
+          <thead><tr><th>Gateway</th><th>ID</th><th>Status</th><th>Meio</th><th class="text-right">Valor</th><th>Data</th></tr></thead>
+          <tbody>
+            {% for p in payments %}<tr><td>{{ p.get_provider_display }}</td><td class="font-mono text-xs">{{ p.external_id|default:p.preference_id|truncatechars:22 }}</td><td>{{ p.status }}{% if p.status_detail %}<div class="text-xs text-muted">{{ p.status_detail }}</div>{% endif %}</td><td>{{ p.method }}{% if p.installments %} {{ p.installments }}x{% endif %}</td><td class="text-right">{{ p.amount|brl }}</td><td class="text-xs">{{ p.created_at|date:"d/m H:i" }}</td></tr>
+            {% empty %}<tr><td colspan="6" class="text-muted">Nenhuma tentativa de pagamento registrada.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <form method="post" action="{% url 'dashboard:order_reconcile' order.number %}">{% csrf_token %}<button class="btn btn-outline btn-sm">Consultar no Mercado Pago</button></form>
+        {% if perms.orders.register_manual_payment and order.status == 'awaiting_payment' %}
+        <details class="w-full">
+          <summary class="cursor-pointer text-sm font-semibold underline">Registrar pagamento recebido fora do site…</summary>
+          <form method="post" action="{% url 'dashboard:order_manual_payment' order.number %}" class="mt-3 flex flex-wrap gap-2" onsubmit="return confirm('Confirma que o valor de {{ order.total|brl }} foi recebido?')">
+            {% csrf_token %}<input name="note" class="input max-w-md py-2" placeholder="Ex.: Pix recebido em 05/11, comprovante E2E…" required>
+            <button class="btn btn-dark btn-sm">Confirmar recebimento</button>
+          </form>
+          <p class="help">Use apenas com comprovação real. A ação fica registrada na auditoria.</p>
+        </details>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel p-5">
+      <h2 class="eyebrow">Histórico</h2>
+      <ol class="mt-4 space-y-3 border-l-2 border-line pl-5 text-sm">
+        {% for h in history %}<li><p class="font-semibold">{{ h.to_label }}</p><p class="text-xs text-muted">{{ h.created_at|date:"d/m/Y H:i" }}{% if h.actor %} · {{ h.actor.email }}{% endif %}{% if h.note %} · {{ h.note }}{% endif %}{% if h.customer_notified %} · cliente notificado{% endif %}</p></li>{% endfor %}
+      </ol>
+      {% if movements %}<h3 class="eyebrow mt-6">Movimentações de estoque</h3>
+      <ul class="mt-2 space-y-1 text-xs">{% for m in movements %}<li><span class="font-mono">{{ m.variant.sku }}</span> {{ m.get_kind_display }} {{ m.quantity|stringformat:"+d" }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+  </div>
+
+  <div class="space-y-6">
+    {% if perms.orders.change_order_status and status_form.fields.status.choices %}
+    <form method="post" action="{% url 'dashboard:order_status' order.number %}" class="panel space-y-4 p-5">
+      {% csrf_token %}<h2 class="eyebrow">Atualizar status</h2>
+      {% include "partials/field.html" with field=status_form.status %}
+      {% include "partials/field.html" with field=status_form.note %}
+      {% include "partials/field.html" with field=status_form.notify %}
+      <button class="btn btn-dark btn-block">Atualizar</button>
+    </form>
+    {% endif %}
+
+    <section class="panel p-5 text-sm">
+      <h2 class="eyebrow">Cliente</h2>
+      <p class="mt-3 font-semibold">{{ order.customer_name }}</p>
+      <p>{{ order.email }}<br>{{ order.phone }}{% if order.cpf %}<br>CPF {{ order.cpf }}{% endif %}</p>
+      {% if order.user %}<a class="link mt-2 inline-block" href="{% url 'dashboard:customer_detail' order.user.pk %}">Ver cliente</a>{% else %}<p class="mt-2 text-xs text-muted">Compra como visitante</p>{% endif %}
+      <h3 class="eyebrow mt-5">Entrega</h3>
+      <p class="mt-2">{{ order.ship_recipient }}<br><span class="text-muted">{{ order.shipping_address_line }}</span></p>
+      <p class="mt-2">{{ order.shipping_name }}</p>
+      {% if order.customer_notes %}<h3 class="eyebrow mt-5">Observações do cliente</h3><p class="mt-2">{{ order.customer_notes|linebreaksbr }}</p>{% endif %}
+      {% if order.internal_notes %}<h3 class="eyebrow mt-5">Notas internas</h3><p class="mt-2 text-muted">{{ order.internal_notes|linebreaksbr }}</p>{% endif %}
+    </section>
+
+    {% if perms.shipping.change_shipment %}
+    <form method="post" action="{% url 'dashboard:order_shipment' order.number %}" class="panel space-y-4 p-5" novalidate>
+      {% csrf_token %}<h2 class="eyebrow">Envio e rastreamento</h2>
+      {% for field in ship_form %}{% include "partials/field.html" with field=field %}{% endfor %}
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="notify" value="1" class="checkbox"> Enviar atualização ao cliente</label>
+      <button class="btn btn-outline btn-block">Salvar envio</button>
+    </form>
+    {% endif %}
+
+    {% if perms.orders.cancel_order and order.status != 'cancelled' and order.status != 'refunded' and order.status != 'shipped' and order.status != 'delivered' %}
+    <form method="post" action="{% url 'dashboard:order_cancel' order.number %}" class="panel space-y-3 border-danger/40 p-5" onsubmit="return confirm('Cancelar este pedido?')">
+      {% csrf_token %}<h2 class="eyebrow text-danger">Cancelar pedido</h2>
+      <input name="reason" class="input py-2" placeholder="Motivo do cancelamento" required>
+      {% if order.paid_at %}<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="restock" value="1" class="checkbox" checked> Devolver itens ao estoque</label>
+      <p class="help">Pedido pago: após cancelar, faça o reembolso no painel do Mercado Pago.</p>{% else %}<input type="hidden" name="restock" value="1">{% endif %}
+      <button class="btn btn-danger btn-sm">Cancelar pedido</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

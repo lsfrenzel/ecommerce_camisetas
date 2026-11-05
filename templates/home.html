@@ -1,0 +1,220 @@
+{% extends "base.html" %}{% load store %}
+{% block content %}
+
+{# ============================ HERO ============================ #}
+<section class="relative overflow-hidden bg-[#101010] text-[#F5F5F5]" aria-labelledby="hero-title">
+  <div class="absolute inset-0 opacity-100" style="background-image:linear-gradient(rgba(245,245,245,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(245,245,245,.06) 1px,transparent 1px);background-size:48px 48px" aria-hidden="true"></div>
+  <div class="shell relative grid min-h-[calc(100svh-var(--header-h)-34px)] items-center gap-10 py-10 lg:grid-cols-12 lg:py-14">
+    <div class="relative z-10 lg:col-span-7">
+      <p class="eyebrow flex items-center gap-3 text-lime">
+        <span class="inline-block h-px w-10 bg-lime"></span>{{ hero.eyebrow|default:brand.origin_label }}
+      </p>
+      <h1 id="hero-title" class="display mt-6 text-display-xl text-balance">
+        {% if hero %}{{ hero.title }}{% else %}Da quebrada <span class="block">pro <span class="marker">mundo.</span></span>{% endif %}
+      </h1>
+      <p class="mt-6 max-w-md text-base text-[#F5F5F5]/75 sm:text-lg">
+        {{ hero.subtitle|default:"Streetwear com identidade. Arte, atitude e propósito em cada peça." }}
+      </p>
+      <div class="mt-9 flex flex-col gap-3 xs:flex-row">
+        <a href="{% if hero.primary_url %}{{ hero.primary_url }}{% elif drop %}{{ drop.get_absolute_url }}{% else %}{% url 'catalog:shop' %}{% endif %}" class="btn btn-primary hover:shadow-[4px_4px_0_0_#F5F5F5]">
+          {{ hero.primary_label|default:"Explorar coleção" }} {% icon "arrow-right" 18 %}
+        </a>
+        <a href="{% if hero.secondary_url %}{{ hero.secondary_url }}{% else %}{% url 'content:about' %}{% endif %}" class="btn border-2 border-[#F5F5F5] text-[#F5F5F5] hover:bg-[#F5F5F5] hover:text-[#101010]">
+          {{ hero.secondary_label|default:"Conhecer a marca" }}
+        </a>
+      </div>
+      <dl class="mt-12 hidden max-w-lg grid-cols-3 gap-6 border-t border-[#F5F5F5]/15 pt-6 sm:grid">
+        <div><dt class="kicker text-[#F5F5F5]/50">Modelagem</dt><dd class="mt-1 font-display font-semibold uppercase">Oversized</dd></div>
+        <div><dt class="kicker text-[#F5F5F5]/50">Arte</dt><dd class="mt-1 font-display font-semibold uppercase">Autoral</dd></div>
+        <div><dt class="kicker text-[#F5F5F5]/50">Origem</dt><dd class="mt-1 font-display font-semibold uppercase">Zona Sul · SP</dd></div>
+      </dl>
+    </div>
+
+    <div class="relative lg:col-span-5">
+      <div class="relative mx-auto max-w-[460px]">
+        <span class="pointer-events-none absolute -left-4 -top-4 h-16 w-28 border-l-2 border-t-2 border-orange" aria-hidden="true"></span>
+        <span class="pointer-events-none absolute -bottom-4 -right-4 h-28 w-16 border-b-2 border-r-2 border-lime" aria-hidden="true"></span>
+        <div class="relative aspect-[4/5] overflow-hidden bg-[#1B1B1B]">
+          {% if hero.image %}
+            <picture>
+              {% if hero.image_mobile %}<source media="(max-width: 767px)" srcset="{{ hero.image_mobile.url }}">{% endif %}
+              <img src="{{ hero.image.url }}" alt="{{ hero.image_alt|default:hero.title }}" class="h-full w-full object-cover" width="920" height="1150" fetchpriority="high">
+            </picture>
+          {% elif hero_product and hero_product.secondary_image %}
+            <img src="{{ hero_product.secondary_image.image.url }}" alt="{{ hero_product.secondary_image.alt_text }}" class="h-full w-full object-cover" width="920" height="1150" fetchpriority="high">
+          {% elif hero_product and hero_product.primary_image %}
+            <img src="{{ hero_product.primary_image.image.url }}" alt="{{ hero_product.primary_image.alt_text }}" class="h-full w-full object-cover" width="920" height="1150" fetchpriority="high">
+          {% endif %}
+          {% if hero_product %}
+          <a href="{{ hero_product.get_absolute_url }}" class="group absolute inset-x-3 bottom-3 flex items-center justify-between gap-3 bg-[#F5F5F5] px-4 py-3 text-[#101010] transition hover:bg-lime">
+            <span class="min-w-0">
+              <span class="kicker block text-[#101010]/60">Em destaque</span>
+              <span class="block truncate font-display text-sm font-bold uppercase">{{ hero_product.name }}</span>
+            </span>
+            <span class="flex shrink-0 items-center gap-2 whitespace-nowrap font-display font-bold">{{ hero_product.price_info.final|brl }} {% icon "arrow-up-right" 18 "transition group-hover:rotate-45" %}</span>
+          </a>
+          {% endif %}
+        </div>
+        <p class="absolute -right-10 top-1/2 hidden origin-center -translate-y-1/2 rotate-90 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.3em] text-[#F5F5F5]/40 xl:block" aria-hidden="true">23°39′S · 46°46′W — {{ brand.origin_label }}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ============================ FAIXA ============================ #}
+<div class="overflow-hidden border-y-2 border-fg bg-lime text-ink" aria-hidden="true">
+  <div class="flex w-max animate-marquee gap-10 whitespace-nowrap py-3 font-display text-xl font-bold uppercase tracking-tight sm:text-2xl">
+    {% for i in "123456" %}
+      <span>{{ strip.title|default:"Pense como Jesus" }}</span><span>✦</span><span class="text-stroke" style="-webkit-text-stroke-color:#171717">{{ brand.slogan }}</span><span>✦</span>
+    {% endfor %}
+  </div>
+</div>
+
+{# ============================ DROP ============================ #}
+{% if drop %}
+<section class="shell py-20 lg:py-28" aria-labelledby="drop-title">
+  <div class="grid gap-6 lg:grid-cols-12 lg:items-end">
+    <div class="lg:col-span-7">
+      <span class="tag tag-lime">{{ drop.label|default:"Lançamento" }}</span>
+      <h2 id="drop-title" class="display mt-5 text-display-lg">{{ drop.name }}</h2>
+    </div>
+    <div class="lg:col-span-5">
+      <p class="text-lg leading-relaxed">{{ drop.tagline }}</p>
+      <a href="{{ drop.get_absolute_url }}" class="link-slide mt-4 inline-flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider">Ver drop completo {% icon "arrow-right" 16 %}</a>
+    </div>
+  </div>
+
+  {% if drop_products %}
+  <div class="mt-12 grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-5 lg:grid-cols-12">
+    {% for product in drop_products %}
+      {% if forloop.first %}
+      <div class="col-span-2 lg:col-span-6 lg:row-span-2">
+        <article class="product-card group relative">
+          <a href="{{ product.get_absolute_url }}" class="product-media brackets" aria-label="{{ product.name }}">
+            {% with img=product.primary_image img2=product.secondary_image %}
+              {% if img %}<img class="primary" src="{{ img.image.url }}" alt="{{ img.alt_text }}" width="1200" height="1500" loading="lazy" decoding="async">{% endif %}
+              {% if img2 %}<img class="secondary" src="{{ img2.image.url }}" alt="" width="1200" height="1500" loading="lazy" decoding="async">{% endif %}
+            {% endwith %}
+            <span class="absolute left-4 top-4 flex gap-1.5">{% if product.badge %}<span class="tag">{{ product.badge }}</span>{% endif %}{% if product.price_info.on_sale %}<span class="tag tag-orange">-{{ product.price_info.percent_off }}%</span>{% endif %}</span>
+          </a>
+          <div class="mt-4 flex items-start justify-between gap-4">
+            <div>
+              <p class="kicker">01 / Peça principal</p>
+              <h3 class="display mt-1 text-2xl"><a href="{{ product.get_absolute_url }}" class="after:absolute after:inset-0">{{ product.name }}</a></h3>
+            </div>
+            <div class="text-right">{% if product.price_info.on_sale %}<p class="price-old">{{ product.price_info.base|brl }}</p>{% endif %}<p class="font-display text-xl font-bold">{{ product.price_info.final|brl }}</p></div>
+          </div>
+        </article>
+      </div>
+      {% else %}
+      <div class="lg:col-span-3">{% include "catalog/_card.html" %}</div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{# ============================ MAIS VENDIDOS ============================ #}
+{% if bestsellers %}
+<section class="border-t border-line py-20 lg:py-24" aria-labelledby="best-title">
+  <div class="shell flex items-end justify-between gap-4">
+    <div>
+      <p class="kicker">{% if bestsellers_are_real %}Ranking com base em vendas reais{% else %}Recém-chegados{% endif %}</p>
+      <h2 id="best-title" class="display mt-2 text-display-md">{% if bestsellers_are_real %}Mais vendidos{% else %}Novidades{% endif %}</h2>
+    </div>
+    <a href="{% url 'catalog:shop' %}?ordem={% if bestsellers_are_real %}populares{% else %}novidades{% endif %}" class="btn btn-outline btn-sm">Ver tudo</a>
+  </div>
+  <div class="shell mt-10">
+    <div class="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 scrollbar-none sm:-mx-6 sm:gap-5 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
+      {% for product in bestsellers %}
+        <div class="w-[68%] shrink-0 snap-start xs:w-[46%] md:w-[31%] lg:w-auto">{% include "catalog/_card.html" %}</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ============================ COLEÇÕES ============================ #}
+{% if home_collections %}
+<section class="bg-[#101010] py-20 text-[#F5F5F5] lg:py-28" aria-labelledby="col-title">
+  <div class="shell">
+    <div class="flex items-end justify-between gap-4">
+      <h2 id="col-title" class="display text-display-md">Coleções</h2>
+      <a href="{% url 'catalog:collections' %}" class="link-slide font-display text-sm font-bold uppercase tracking-wider">Todas</a>
+    </div>
+    <div class="mt-10 grid gap-4 md:grid-cols-2">
+      {% for c in home_collections %}
+      <a href="{{ c.get_absolute_url }}" class="group relative block aspect-[4/3] overflow-hidden bg-[#1B1B1B] {% if forloop.first and home_collections|length > 2 %}md:col-span-2 md:aspect-[21/9]{% endif %}">
+        {% if c.cover %}
+          <img src="{{ c.cover.url }}" alt="" class="absolute inset-0 h-full w-full object-cover opacity-80 transition duration-700 ease-snap group-hover:scale-[1.03] group-hover:opacity-100" loading="lazy" width="1400" height="1050">
+        {% else %}
+          {% with p=c.products.all|first %}{% if p and p.primary_image %}<img src="{{ p.primary_image.image.url }}" alt="" class="absolute inset-0 h-full w-full object-cover opacity-60 transition duration-700 group-hover:scale-[1.03] group-hover:opacity-80" loading="lazy">{% endif %}{% endwith %}
+        {% endif %}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"></div>
+        <div class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-8">
+          <div>
+            {% if c.label %}<span class="tag tag-lime">{{ c.label }}</span>{% endif %}
+            <h3 class="display mt-3 text-3xl sm:text-4xl">{{ c.name }}</h3>
+            {% if c.tagline %}<p class="mt-2 max-w-md text-sm text-[#F5F5F5]/75">{{ c.tagline }}</p>{% endif %}
+          </div>
+          <span class="grid h-12 w-12 shrink-0 place-items-center border border-[#F5F5F5]/40 transition group-hover:border-lime group-hover:bg-lime group-hover:text-ink">{% icon "arrow-up-right" 20 %}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ============================ MANIFESTO ============================ #}
+<section class="grain py-24 lg:py-32" aria-labelledby="manifesto-title">
+  <div class="shell grid gap-12 lg:grid-cols-12">
+    <div class="lg:col-span-4">
+      <p class="kicker">Manifesto</p>
+      <p class="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-muted">{{ brand.origin_label }}</p>
+    </div>
+    <div class="lg:col-span-8">
+      <h2 id="manifesto-title" class="display text-display-md text-balance">{{ brand.manifesto_title }}</h2>
+      <div class="prose-store mt-8 max-w-2xl text-lg">
+        {% if brand.manifesto_text %}{{ brand.manifesto_text|split_paragraphs }}{% else %}
+        <p>A gente nasceu no Capão Redondo, Zona Sul de São Paulo, onde a criatividade sempre foi ferramenta de sobrevivência e de festa. Cada peça carrega arte autoral, história e uma ideia: moda pode ser mensagem.</p>
+        {% endif %}
+      </div>
+      <ol class="mt-14 grid gap-px border border-line bg-line sm:grid-cols-3">
+        <li class="bg-bg p-6"><span class="font-mono text-xs text-muted">01</span><p class="display mt-6 text-2xl">Arte</p><p class="mt-2 text-sm text-muted">Estampas autorais criadas por artistas da quebrada.</p></li>
+        <li class="bg-bg p-6"><span class="font-mono text-xs text-muted">02</span><p class="display mt-6 text-2xl">Comunidade</p><p class="mt-2 text-sm text-muted">Pertencimento, autoestima e orgulho de onde a gente vem.</p></li>
+        <li class="bg-bg p-6"><span class="font-mono text-xs text-muted">03</span><p class="display mt-6 text-2xl">Propósito</p><p class="mt-2 text-sm text-muted">Amor, respeito e cuidado — vestidos todos os dias.</p></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+{# ============================ PERSONALIZE ============================ #}
+<section class="border-y-2 border-fg bg-lime text-ink" aria-labelledby="custom-title">
+  <div class="shell grid items-center gap-10 py-16 lg:grid-cols-12 lg:py-24">
+    <div class="lg:col-span-7">
+      <p class="eyebrow">Personalize</p>
+      <h2 id="custom-title" class="mt-4 font-display text-display-xl font-bold uppercase">{{ personalize_banner.title|default:brand.personalize_title }}</h2>
+      <p class="mt-6 max-w-lg text-lg">{{ personalize_banner.subtitle|default:brand.personalize_text }}</p>
+      <a href="{% url 'personalization:start' %}" class="btn mt-8 bg-ink text-[#F5F5F5] hover:shadow-[4px_4px_0_0_#F5F5F5] hover:-translate-x-0.5 hover:-translate-y-0.5">{{ personalize_banner.primary_label|default:"Crie a sua" }} {% icon "arrow-right" 18 %}</a>
+    </div>
+    <ol class="space-y-px bg-ink/80 lg:col-span-5">
+      <li class="flex gap-5 bg-lime p-5"><span class="font-display text-4xl font-bold">1</span><div><p class="font-display font-bold uppercase">Escolha a base</p><p class="text-sm opacity-75">Modelo, cor e tamanho.</p></div></li>
+      <li class="flex gap-5 bg-lime p-5"><span class="font-display text-4xl font-bold">2</span><div><p class="font-display font-bold uppercase">Envie sua arte</p><p class="text-sm opacity-75">Imagem, texto e onde estampar.</p></div></li>
+      <li class="flex gap-5 bg-lime p-5"><span class="font-display text-4xl font-bold">3</span><div><p class="font-display font-bold uppercase">Aprovou, produziu</p><p class="text-sm opacity-75">Nossa equipe revisa e libera para pagamento.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+{# ============================ NEWSLETTER ============================ #}
+<section class="shell py-20 lg:py-28" aria-labelledby="news-title">
+  <div class="grid gap-10 lg:grid-cols-12">
+    <div class="lg:col-span-6">
+      <h2 id="news-title" class="display text-display-md">Chega primeiro no próximo drop.</h2>
+      <p class="mt-4 max-w-md text-muted">Lançamentos, reposições e promoções direto no seu e-mail. Sem spam — e você sai quando quiser.</p>
+    </div>
+    <div class="lg:col-span-6">{% include "content/_newsletter_form.html" %}</div>
+  </div>
+</section>
+{% endblock %}

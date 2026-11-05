@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load store %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="grid min-h-[calc(100svh-var(--header-h))] lg:grid-cols-2">
+  <div class="relative hidden overflow-hidden bg-[#101010] text-[#F5F5F5] lg:block">
+    <div class="absolute inset-0" style="background-image:linear-gradient(rgba(245,245,245,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(245,245,245,.06) 1px,transparent 1px);background-size:48px 48px"></div>
+    <div class="relative flex h-full flex-col justify-between p-12">
+      <p class="eyebrow text-lime">{{ brand.origin_label }}</p>
+      <p class="display text-display-lg">{{ brand.slogan }}</p>
+      <p class="kicker text-[#F5F5F5]/50">{{ brand.store_name }}</p>
+    </div>
+  </div>
+  <div class="flex items-center justify-center px-4 py-12 sm:px-8">
+    <div class="w-full max-w-md">{% block auth_content %}{% endblock %}</div>
+  </div>
+</section>
+{% endblock %}
+{% block footer %}{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Cancelar inscrição — {{ brand.store_name }}{% endblock %}
+{% block content %}
+<section class="shell max-w-xl py-24">
+  <h1 class="display text-display-md">Sair da newsletter</h1>
+  {% if sub.unsubscribed_at %}
+    <p class="mt-4 text-muted">O e-mail {{ sub.email }} já não recebe nossas comunicações de marketing.</p>
+  {% else %}
+    <p class="mt-4 text-muted">Confirme para que {{ sub.email }} deixe de receber e-mails de marketing. E-mails sobre seus pedidos continuam sendo enviados.</p>
+    <form method="post" class="mt-8">{% csrf_token %}<button class="btn btn-dark">Confirmar cancelamento</button></form>
+  {% endif %}
+</section>
+{% endblock %}

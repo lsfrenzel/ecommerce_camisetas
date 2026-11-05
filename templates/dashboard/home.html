@@ -1,0 +1,112 @@
+{% extends "dashboard/base.html" %}{% load static store %}
+{% block title %}Visão geral{% endblock %}
+{% block heading %}Visão geral{% endblock %}
+{% block head %}<script src="{% static 'vendor/chart.umd.min.js' %}" defer></script>{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="kicker">{% now "l, d \d\e F" %}</p>
+    <h1 class="display mt-1 text-3xl sm:text-4xl">Olá, {{ user.get_short_name }}</h1>
+  </div>
+  {% if can_finance %}{% include "dashboard/_period.html" %}{% endif %}
+</div>
+
+{% if status.attention %}
+<a href="{% url 'dashboard:orders' %}?status=atencao" class="mt-6 flex items-center gap-3 border-2 border-orange bg-orange/10 p-4 text-sm font-semibold">{% icon "alert" 18 %} {{ status.attention }} pedido(s) exigem atenção (pagamento divergente, estoque ou reembolso).</a>
+{% endif %}
+
+{% if can_finance %}
+<section class="mt-8 grid gap-px border border-line bg-line sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores do período">
+  <div class="bg-surface p-5"><p class="kicker">Faturamento bruto</p><p class="display mt-3 text-3xl">{{ kpi.gross|brl }}</p><p class="help">{{ kpi.placed_count }} pedido(s) realizados, exceto cancelados</p></div>
+  <div class="bg-surface p-5"><p class="kicker">Receita (pedidos pagos)</p><p class="display mt-3 text-3xl">{{ kpi.revenue|brl }}</p><p class="help">{{ kpi.paid_count }} pedido(s) pagos · frete {{ kpi.shipping|brl }}</p></div>
+  <div class="bg-surface p-5"><p class="kicker">Ticket médio</p><p class="display mt-3 text-3xl">{{ kpi.avg_ticket|brl }}</p><p class="help">receita ÷ pedidos pagos</p></div>
+  <div class="bg-surface p-5"><p class="kicker">Descontos concedidos</p><p class="display mt-3 text-3xl">{{ kpi.discounts|brl }}</p><p class="help">promoções {{ kpi.promo_discounts|brl }} · cupons {{ kpi.coupon_discounts|brl }}</p></div>
+  {% if can_cost %}
+  <div class="bg-surface p-5"><p class="kicker">Custo dos produtos (CMV)</p><p class="display mt-3 text-2xl">{{ kpi.cogs|brl }}</p></div>
+  <div class="bg-surface p-5"><p class="kicker">Tarifas do gateway</p><p class="display mt-3 text-2xl">{{ kpi.gateway_fees|brl }}</p><p class="help">conhecidas via Mercado Pago</p></div>
+  <div class="bg-surface p-5 sm:col-span-2"><p class="kicker">Lucro bruto estimado</p><p class="display mt-3 text-2xl">{{ kpi.gross_profit|brl }}</p><p class="help">Receita de produtos − CMV − tarifas. Não é lucro líquido (não inclui impostos, embalagens, marketing e despesas fixas).</p></div>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="mt-6 grid gap-px border border-line bg-line grid-cols-2 sm:grid-cols-3 xl:grid-cols-6" aria-label="Situação atual dos pedidos">
+  <a href="{% url 'dashboard:orders' %}?status=awaiting_payment" class="bg-surface p-4 hover:bg-fg/5"><p class="kicker">Aguardando pgto.</p><p class="display mt-2 text-2xl">{{ status.awaiting }}</p></a>
+  <a href="{% url 'dashboard:orders' %}?status=paid" class="bg-surface p-4 hover:bg-fg/5"><p class="kicker">Pagos</p><p class="display mt-2 text-2xl">{{ status.paid }}</p></a>
+  <a href="{% url 'dashboard:orders' %}?status=in_production" class="bg-surface p-4 hover:bg-fg/5"><p class="kicker">Em produção</p><p class="display mt-2 text-2xl">{{ status.production }}</p></a>
+  <a href="{% url 'dashboard:orders' %}?status=ready_to_ship" class="bg-surface p-4 hover:bg-fg/5"><p class="kicker">Prontos p/ envio</p><p class="display mt-2 text-2xl">{{ status.ready }}</p></a>
+  <a href="{% url 'dashboard:orders' %}?status=shipped" class="bg-surface p-4 hover:bg-fg/5"><p class="kicker">Enviados</p><p class="display mt-2 text-2xl">{{ status.shipped }}</p></a>
+  <a href="{% url 'dashboard:orders' %}?status=delivered" class="bg-surface p-4 hover:bg-fg/5"><p class="kicker">Entregues</p><p class="display mt-2 text-2xl">{{ status.delivered }}</p></a>
+</section>
+
+<div class="mt-8 grid gap-6 xl:grid-cols-3">
+  {% if can_finance %}
+  <section class="panel p-5 xl:col-span-2">
+    <div class="flex items-center justify-between"><h2 class="eyebrow">Evolução das vendas · {{ period.label }}</h2><a href="{% url 'dashboard:reports' %}" class="text-xs underline">Relatórios</a></div>
+    <div class="relative mt-4 h-72"><canvas id="salesChart" role="img" aria-label="Receita diária de pedidos pagos no período"></canvas></div>
+  </section>
+  <section class="panel p-5">
+    <h2 class="eyebrow">Mais vendidos no período</h2>
+    <ol class="mt-4 space-y-3 text-sm">
+      {% for p in top_products %}
+      <li class="flex items-center justify-between gap-3"><span class="flex items-center gap-3"><span class="font-mono text-xs text-muted">{{ forloop.counter|stringformat:"02d" }}</span>{{ p.product_name }}</span><span class="font-semibold">{{ p.units }} un.</span></li>
+      {% empty %}<li class="text-muted">Sem vendas pagas no período.</li>{% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+  <section class="panel p-5 xl:col-span-2">
+    <div class="flex items-center justify-between"><h2 class="eyebrow">Pedidos recentes</h2><a href="{% url 'dashboard:orders' %}" class="text-xs underline">Todos</a></div>
+    <div class="mt-3 overflow-x-auto">
+      <table class="table-clean min-w-[520px]">
+        <thead><tr><th>Pedido</th><th>Cliente</th><th>Status</th><th class="text-right">Total</th></tr></thead>
+        <tbody>
+          {% for o in recent_orders %}
+          <tr><td><a class="font-display font-bold underline-offset-4 hover:underline" href="{% url 'dashboard:order_detail' o.number %}">#{{ o.number }}</a><div class="text-xs text-muted">{{ o.created_at|date:"d/m H:i" }}</div></td>
+            <td>{{ o.customer_name }}</td><td>{% status_badge o.status o.get_status_display %}</td><td class="text-right">{{ o.total|brl }}</td></tr>
+          {% empty %}<tr><td colspan="4" class="text-muted">Nenhum pedido ainda.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="panel p-5">
+    <div class="flex items-center justify-between"><h2 class="eyebrow">Estoque baixo</h2><a href="{% url 'dashboard:inventory' %}?baixo=1" class="text-xs underline">Ver</a></div>
+    <ul class="mt-4 space-y-2 text-sm">
+      {% for v in low_stock %}
+      <li class="flex justify-between gap-3"><span class="truncate">{{ v.product.name }} <span class="text-muted">{{ v.color.name }}/{{ v.size.name }}</span></span><span class="font-semibold {% if v.avail <= 0 %}text-danger{% else %}text-orange{% endif %}">{{ v.avail }}</span></li>
+      {% empty %}<li class="text-muted">Nenhum item abaixo do mínimo.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+{% if can_finance %}
+{{ series|json_script:"series-data" }}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var el = document.getElementById("salesChart");
+  if (!el || !window.Chart) return;
+  var data = JSON.parse(JSON.parse(document.getElementById("series-data").textContent));
+  var css = getComputedStyle(document.documentElement);
+  var rgb = function (v) { return "rgb(" + css.getPropertyValue(v).trim().split(" ").join(",") + ")"; };
+  var chart = new Chart(el, {
+    type: "bar",
+    data: { labels: data.labels, datasets: [{ label: "Receita (R$)", data: data.totals, backgroundColor: rgb("--c-fg"), hoverBackgroundColor: rgb("--c-lime"), borderRadius: 0, maxBarThickness: 28 }] },
+    options: {
+      maintainAspectRatio: false, animation: { duration: 400 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: function (ctx) { return ctx.parsed.y.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + " · " + data.counts[ctx.dataIndex] + " pedido(s)"; } } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: rgb("--c-muted"), maxRotation: 0, autoSkip: true } },
+        y: { beginAtZero: true, grid: { color: rgb("--c-line") }, ticks: { color: rgb("--c-muted"), callback: function (v) { return "R$ " + v.toLocaleString("pt-BR"); } } }
+      }
+    }
+  });
+  new MutationObserver(function () {
+    chart.data.datasets[0].backgroundColor = rgb("--c-fg");
+    chart.options.scales.x.ticks.color = chart.options.scales.y.ticks.color = rgb("--c-muted");
+    chart.options.scales.y.grid.color = rgb("--c-line");
+    chart.update();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+});
+</script>
+{% endif %}
+{% endblock %}

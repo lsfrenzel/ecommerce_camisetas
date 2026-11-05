@@ -1,0 +1,39 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Equipe e acessos{% endblock %}
+{% block heading %}Equipe e acessos{% endblock %}
+{% block content %}
+<h1 class="display text-3xl">Equipe e acessos</h1>
+<p class="help mt-2 max-w-3xl">As permissões são aplicadas no servidor em cada ação (não apenas escondendo botões). Toda mudança de papel fica registrada na auditoria.</p>
+<div class="mt-6 grid gap-6 xl:grid-cols-3">
+  <section class="panel overflow-x-auto p-5 xl:col-span-2">
+    <table class="table-clean min-w-[560px]">
+      <thead><tr><th>Membro</th><th>Papel atual</th><th>Alterar papel</th></tr></thead>
+      <tbody>
+        {% for member, role in staff %}
+        <tr><td><p class="font-semibold">{{ member.full_name }}</p><p class="text-xs text-muted">{{ member.email }}{% if not member.is_active %} · inativo{% endif %}</p></td>
+          <td>{{ role }}</td>
+          <td>{% if not member.is_superuser and member != user %}
+            <form method="post" action="{% url 'dashboard:team_role' member.pk %}" class="flex gap-2">{% csrf_token %}
+              <select name="role" class="input py-1.5 text-sm"><option value="">— Remover acesso —</option>{% for r in roles %}<option value="{{ r }}" {% if r in role %}selected{% endif %}>{{ r }}</option>{% endfor %}</select>
+              <button class="btn btn-outline btn-sm">OK</button></form>
+          {% else %}<span class="text-xs text-muted">—</span>{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <form method="post" class="panel space-y-4 p-5" novalidate>{% csrf_token %}
+    <h2 class="eyebrow">Novo membro</h2>
+    {% for field in form %}{% include "partials/field.html" with field=field %}{% endfor %}
+    <button class="btn btn-dark btn-block">Criar acesso</button>
+  </form>
+</div>
+<section class="panel mt-6 p-5">
+  <h2 class="eyebrow">Papéis</h2>
+  <dl class="mt-3 grid gap-4 text-sm md:grid-cols-2">
+    <div><dt class="font-semibold">Administrador geral</dt><dd class="text-muted">Acesso total, incluindo equipe, auditoria, configurações e dados financeiros.</dd></div>
+    <div><dt class="font-semibold">Gestor comercial</dt><dd class="text-muted">Produtos, preços, promoções, cupons, conteúdo, pedidos, relatórios e custos.</dd></div>
+    <div><dt class="font-semibold">Estoquista</dt><dd class="text-muted">Estoque (entradas, saídas, ajustes), status de produção e envio.</dd></div>
+    <div><dt class="font-semibold">Atendimento</dt><dd class="text-muted">Pedidos, envios, suporte, solicitações LGPD e análise de personalizações.</dd></div>
+  </dl>
+</section>
+{% endblock %}

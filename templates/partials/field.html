@@ -1,0 +1,10 @@
+<div class="{{ span|default:'' }}">
+  {% if field.field.widget.input_type == "checkbox" %}
+    <label class="flex items-start gap-3 text-sm">{{ field }}<span>{{ field.label }}</span></label>
+  {% else %}
+    <label for="{{ field.id_for_label }}" class="label">{{ field.label }}{% if not field.field.required %} <span class="font-normal text-muted">(opcional)</span>{% endif %}</label>
+    {{ field }}
+  {% endif %}
+  {% if field.help_text %}<p class="help">{{ field.help_text|safe }}</p>{% endif %}
+  {% for e in field.errors %}<p class="error" role="alert">{{ e }}</p>{% endfor %}
+</div>

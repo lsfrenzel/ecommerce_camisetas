@@ -1,0 +1,24 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}Atendimento{% endblock %}
+{% block heading %}Atendimento{% endblock %}
+{% block content %}
+<h1 class="display text-3xl">Solicitações de suporte</h1>
+<div class="mt-6 space-y-4">
+  {% for t in page %}
+  <details class="panel p-5" {% if t.status == 'open' %}open{% endif %}>
+    <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
+      <span><span class="font-semibold">{{ t.subject }}</span> <span class="text-xs text-muted">· {{ t.user.email }} · {{ t.created_at|date:"d/m/Y H:i" }}{% if t.order %} · <a class="link" href="{% url 'dashboard:order_detail' t.order.number %}">#{{ t.order.number }}</a>{% endif %}</span></span>
+      {% status_badge t.status t.get_status_display %}
+    </summary>
+    <p class="mt-4 text-sm">{{ t.message|linebreaksbr }}</p>
+    {% if perms.accounts.change_supportrequest %}
+    <form method="post" class="mt-4 space-y-3">{% csrf_token %}<input type="hidden" name="id" value="{{ t.pk }}">
+      <textarea name="reply" rows="3" class="input" placeholder="Resposta ao cliente (enviada por e-mail)">{{ t.staff_reply }}</textarea>
+      <div class="flex gap-2"><select name="status" class="input max-w-[200px] py-2">{% for k, v in statuses %}<option value="{{ k }}" {% if k == t.status or k == 'answered' and t.status == 'open' %}selected{% endif %}>{{ v }}</option>{% endfor %}</select><button class="btn btn-dark btn-sm">Salvar</button></div>
+    </form>
+    {% endif %}
+  </details>
+  {% empty %}<p class="text-muted">Nenhuma solicitação.</p>{% endfor %}
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}

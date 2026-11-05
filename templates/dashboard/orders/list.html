@@ -1,0 +1,36 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}Pedidos{% endblock %}
+{% block heading %}Pedidos{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <h1 class="display text-3xl">Pedidos</h1>
+  {% if perms.orders.view_reports %}<a href="{% qs csv=1 %}" class="btn btn-outline btn-sm">Exportar CSV</a>{% endif %}
+</div>
+<form method="get" class="mt-6 flex flex-wrap gap-2">
+  <input name="q" value="{{ q }}" class="input max-w-xs py-2" placeholder="Nº, cliente, e-mail ou rastreio">
+  <select name="status" class="input max-w-[230px] py-2" onchange="this.form.submit()">
+    <option value="">Todos os status</option>
+    <option value="atencao" {% if status == 'atencao' %}selected{% endif %}>⚠ Exigem atenção</option>
+    {% for k, v in statuses %}<option value="{{ k }}" {% if k == status %}selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-outline btn-sm">Filtrar</button>
+</form>
+<div class="panel mt-4 overflow-x-auto">
+  <table class="table-clean min-w-[760px]">
+    <thead><tr><th class="pl-4">Pedido</th><th>Data</th><th>Cliente</th><th>Status</th><th>Pagamento</th><th class="text-right pr-4">Total</th></tr></thead>
+    <tbody>
+      {% for o in page %}
+      <tr>
+        <td class="pl-4"><a href="{% url 'dashboard:order_detail' o.number %}" class="font-display font-bold hover:underline">#{{ o.number }}</a>{% if o.needs_attention %} <span class="text-orange" title="{{ o.attention_reason }}">{% icon "alert" 14 %}</span>{% endif %}</td>
+        <td class="text-xs">{{ o.created_at|date:"d/m/Y H:i" }}</td>
+        <td>{{ o.customer_name }}<div class="text-xs text-muted">{{ o.email }}</div></td>
+        <td>{% status_badge o.status o.get_status_display %}</td>
+        <td>{% status_badge o.payment_status o.get_payment_status_display %}</td>
+        <td class="pr-4 text-right font-semibold">{{ o.total|brl }}</td>
+      </tr>
+      {% empty %}<tr><td colspan="6" class="pl-4 text-muted">Nenhum pedido encontrado.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}

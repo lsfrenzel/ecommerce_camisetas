@@ -1,0 +1,26 @@
+{% extends "dashboard/base.html" %}{% load store %}
+{% block title %}LGPD{% endblock %}
+{% block heading %}LGPD{% endblock %}
+{% block content %}
+<h1 class="display text-3xl">Solicitações de titulares (LGPD)</h1>
+<p class="help mt-2 max-w-3xl">Responda dentro do prazo legal. Exclusão: dados de pedidos são mantidos pelo prazo exigido pela legislação fiscal/consumerista; a anonimização remove dados de cadastro, endereços e consentimentos e desvincula os pedidos da conta (somente superusuários).</p>
+<div class="mt-6 space-y-4">
+  {% for r in page %}
+  <details class="panel p-5" {% if r.status == 'pending' %}open{% endif %}>
+    <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3"><span><span class="font-semibold">{{ r.get_kind_display }}</span> <span class="text-xs text-muted">· {{ r.email }} · {{ r.created_at|date:"d/m/Y" }}</span></span>{% status_badge r.status r.get_status_display %}</summary>
+    {% if r.details %}<p class="mt-3 text-sm">{{ r.details|linebreaksbr }}</p>{% endif %}
+    {% if perms.accounts.change_datarequest %}
+    <form method="post" class="mt-4 space-y-3">{% csrf_token %}<input type="hidden" name="id" value="{{ r.pk }}">
+      <textarea name="response" rows="2" class="input" placeholder="Resposta registrada">{{ r.response }}</textarea>
+      <div class="flex flex-wrap items-center gap-3">
+        <select name="status" class="input max-w-[240px] py-2">{% for k, v in statuses %}<option value="{{ k }}" {% if k == r.status %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+        {% if r.kind == 'deletion' and user.is_superuser and r.user and r.user.is_active %}<label class="flex items-center gap-2 text-sm text-danger"><input type="checkbox" name="anonymize" value="1" class="checkbox"> Anonimizar conta agora</label>{% endif %}
+        <button class="btn btn-dark btn-sm" onclick="return confirm('Salvar?')">Salvar</button>
+      </div>
+    </form>
+    {% endif %}
+  </details>
+  {% empty %}<p class="text-muted">Nenhuma solicitação.</p>{% endfor %}
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}

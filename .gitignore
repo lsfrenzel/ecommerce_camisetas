@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+db.sqlite3
+media/
+private_media/
+staticfiles/
+
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.claude/settings.local.json

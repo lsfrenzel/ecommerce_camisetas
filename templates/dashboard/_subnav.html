@@ -1,0 +1,29 @@
+{% if section == "catalog" or section == "products" %}
+<nav class="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-line px-4 pb-3 text-sm sm:mx-0 sm:px-0" aria-label="Catálogo">
+  <a href="{% url 'dashboard:products' %}" class="chip">Produtos</a>
+  <a href="{% url 'dashboard:categorias_list' %}" class="chip">Categorias</a>
+  <a href="{% url 'dashboard:colecoes_list' %}" class="chip">Coleções</a>
+  <a href="{% url 'dashboard:cores_list' %}" class="chip">Cores</a>
+  <a href="{% url 'dashboard:tamanhos_list' %}" class="chip">Tamanhos</a>
+  <a href="{% url 'dashboard:tabelas-medidas_list' %}" class="chip">Tabelas de medidas</a>
+</nav>
+{% elif section == "promotions" %}
+<nav class="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-line px-4 pb-3 text-sm sm:mx-0 sm:px-0">
+  <a href="{% url 'dashboard:promocoes_list' %}" class="chip">Promoções automáticas</a>
+  <a href="{% url 'dashboard:cupons_list' %}" class="chip">Cupons</a>
+  <a href="{% url 'dashboard:bulk_price' %}" class="chip">Preços em lote</a>
+</nav>
+{% elif section == "content" or section == "brand" %}
+<nav class="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-line px-4 pb-3 text-sm sm:mx-0 sm:px-0">
+  <a href="{% url 'dashboard:brand' %}" class="chip">Marca</a>
+  <a href="{% url 'dashboard:banners_list' %}" class="chip">Banners</a>
+  <a href="{% url 'dashboard:paginas_list' %}" class="chip">Páginas</a>
+  <a href="{% url 'dashboard:faq_list' %}" class="chip">FAQ</a>
+  <a href="{% url 'dashboard:newsletter_export' %}" class="chip">Exportar newsletter (CSV)</a>
+</nav>
+{% elif section == "personalization" %}
+<nav class="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-line px-4 pb-3 text-sm sm:mx-0 sm:px-0">
+  <a href="{% url 'dashboard:personalizations' %}" class="chip">Solicitações</a>
+  <a href="{% url 'dashboard:posicoes-estampa_list' %}" class="chip">Posições e preços</a>
+</nav>
+{% endif %}

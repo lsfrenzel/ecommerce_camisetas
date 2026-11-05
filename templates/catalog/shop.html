@@ -1,0 +1,127 @@
+{% extends "base.html" %}{% load store %}
+{% block title %}{{ title }} — {{ brand.store_name }}{% endblock %}
+{% block meta_description %}{% if collection %}{{ collection.tagline|default:collection.description|truncatechars:160 }}{% elif category %}{{ category.description|default:brand.seo_description }}{% else %}{{ brand.seo_description }}{% endif %}{% endblock %}
+{% block canonical %}{{ site_url }}{{ request.path }}{% if page.number > 1 %}?page={{ page.number }}{% endif %}{% endblock %}
+{% block content %}
+<section class="border-b border-line {% if collection %}grid-texture{% endif %}">
+  <div class="shell py-10 lg:py-16">
+    <nav class="kicker mb-5" aria-label="Trilha"><a href="{% url 'core:home' %}" class="hover:text-fg">Início</a> / {% if collection %}<a href="{% url 'catalog:collections' %}" class="hover:text-fg">Coleções</a> / {% endif %}<span class="text-fg">{{ title }}</span></nav>
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        {% if collection.label %}<span class="tag tag-lime mb-4">{{ collection.label }}</span>{% endif %}
+        <h1 class="display text-display-lg text-balance">{{ title }}</h1>
+      </div>
+      {% if collection.tagline %}<p class="max-w-md text-muted">{{ collection.tagline }}</p>{% elif category.description %}<p class="max-w-md text-muted">{{ category.description }}</p>{% endif %}
+    </div>
+  </div>
+</section>
+
+<div class="shell py-8" x-data="{ filters: false }">
+  <form id="filters" method="get" action="{{ request.path }}"
+        hx-get="{{ request.path }}" hx-target="#product-results" hx-trigger="change, submit" hx-push-url="true" hx-indicator="#results-loading">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    <div class="mb-6 flex items-center justify-between gap-3">
+      <button type="button" class="btn btn-outline btn-sm lg:hidden" @click="filters = true" :aria-expanded="filters" aria-controls="filter-panel">
+        Filtros {% if active_filters %}<span class="h-1.5 w-1.5 bg-orange"></span>{% endif %}
+      </button>
+      <div class="ml-auto flex items-center gap-2">
+        <label for="ordem" class="kicker hidden sm:block">Ordenar</label>
+        <select id="ordem" name="ordem" class="input min-w-[170px] py-2 text-sm">
+          {% for key, label in sorts %}<option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="grid gap-10 lg:grid-cols-[240px_1fr]">
+      <!-- Painel de filtros (gaveta no mobile) -->
+      <div id="filter-panel" class="fixed inset-0 z-50 lg:static lg:z-auto lg:block" :class="filters ? 'block' : 'hidden lg:block'" role="dialog" aria-label="Filtros">
+        <div class="absolute inset-0 bg-black/50 lg:hidden" @click="filters=false"></div>
+        <div class="absolute inset-y-0 right-0 flex w-[88%] max-w-sm flex-col overflow-y-auto bg-bg p-5 lg:static lg:w-auto lg:max-w-none lg:overflow-visible lg:bg-transparent lg:p-0">
+          <div class="mb-6 flex items-center justify-between lg:hidden">
+            <p class="eyebrow">Filtros</p>
+            <button type="button" class="icon-btn -mr-2" @click="filters=false" aria-label="Fechar filtros">{% icon "close" 22 %}</button>
+          </div>
+          <div class="space-y-8">
+            <fieldset>
+              <legend class="eyebrow mb-3">Modelagem</legend>
+              <div class="flex flex-wrap gap-2">
+                <label class="chip cursor-pointer has-[:checked]:chip-active"><input class="sr-only" type="radio" name="modelagem" value="" {% if not fit %}checked{% endif %}>Todas</label>
+                <label class="chip cursor-pointer has-[:checked]:chip-active"><input class="sr-only" type="radio" name="modelagem" value="oversized" {% if fit == 'oversized' %}checked{% endif %}>Oversized</label>
+                <label class="chip cursor-pointer has-[:checked]:chip-active"><input class="sr-only" type="radio" name="modelagem" value="regular" {% if fit == 'regular' %}checked{% endif %}>Tradicional</label>
+              </div>
+            </fieldset>
+            {% if sizes %}
+            <fieldset>
+              <legend class="eyebrow mb-3">Tamanho</legend>
+              <div class="flex flex-wrap gap-2">
+                {% for s in sizes %}
+                <label class="chip cursor-pointer has-[:checked]:chip-active"><input class="sr-only" type="checkbox" name="tamanho" value="{{ s.name }}" {% if s.name|in_list:selected_sizes %}checked{% endif %}>{{ s.name }}</label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            {% endif %}
+            {% if colors %}
+            <fieldset>
+              <legend class="eyebrow mb-3">Cor</legend>
+              <div class="space-y-2">
+                {% for c in colors %}
+                <label class="flex cursor-pointer items-center gap-3 text-sm">
+                  <input class="checkbox" type="checkbox" name="cor" value="{{ c.slug }}" {% if c.slug|in_list:selected_colors %}checked{% endif %}>
+                  <span class="h-4 w-4 border border-line" style="background: {{ c.hex }}"></span>{{ c.name }}
+                </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            {% endif %}
+            {% if not collection and collections %}
+            <fieldset>
+              <legend class="eyebrow mb-3">Coleção</legend>
+              <div class="space-y-2">
+                {% for c in collections %}
+                <label class="flex cursor-pointer items-center gap-3 text-sm"><input class="checkbox" type="checkbox" name="colecao" value="{{ c.slug }}" {% if c.slug|in_list:selected_collections %}checked{% endif %}>{{ c.name }}</label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            {% endif %}
+            {% if not category and categories %}
+            <fieldset>
+              <legend class="eyebrow mb-3">Categoria</legend>
+              <div class="space-y-2">
+                {% for c in categories %}
+                <label class="flex cursor-pointer items-center gap-3 text-sm"><input class="checkbox" type="checkbox" name="categoria" value="{{ c.slug }}" {% if c.slug|in_list:selected_categories %}checked{% endif %}>{{ c.name }}</label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            {% endif %}
+            <fieldset>
+              <legend class="eyebrow mb-3">Preço (R$)</legend>
+              <div class="flex items-center gap-2">
+                <label class="sr-only" for="preco_min">Preço mínimo</label>
+                <input id="preco_min" class="input py-2" type="number" min="0" step="1" name="preco_min" value="{{ price_min }}" placeholder="Mín" inputmode="numeric">
+                <span class="text-muted">—</span>
+                <label class="sr-only" for="preco_max">Preço máximo</label>
+                <input id="preco_max" class="input py-2" type="number" min="0" step="1" name="preco_max" value="{{ price_max }}" placeholder="Máx" inputmode="numeric">
+              </div>
+            </fieldset>
+            <label class="flex cursor-pointer items-center gap-3 text-sm font-semibold">
+              <input class="checkbox" type="checkbox" name="disponivel" value="1" {% if only_available %}checked{% endif %}> Somente disponíveis
+            </label>
+            <div class="flex gap-2 pt-2">
+              <button class="btn btn-dark btn-sm flex-1" @click="filters=false">Aplicar</button>
+              {% if active_filters %}<a href="{{ request.path }}{% if q %}?q={{ q|urlencode }}{% endif %}" class="btn btn-ghost btn-sm">Limpar</a>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative min-w-0">
+        <div id="results-loading" class="htmx-indicator pointer-events-none absolute inset-0 z-10 bg-bg/60">
+          <div class="h-0.5 w-full overflow-hidden bg-line"><div class="h-full w-1/3 animate-[marquee_1s_linear_infinite] bg-fg"></div></div>
+        </div>
+        <div id="product-results">{% include "catalog/_results.html" %}</div>
+      </div>
+    </div>
+  </form>
+</div>
+<style>.htmx-indicator{opacity:0;transition:opacity .2s}.htmx-request .htmx-indicator,.htmx-request.htmx-indicator{opacity:1}</style>
+{% endblock %}

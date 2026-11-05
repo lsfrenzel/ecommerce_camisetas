@@ -1,0 +1,13 @@
+{% extends "accounts/base_account.html" %}
+{% block title %}Dados pessoais{% endblock %}
+{% block account_content %}
+<h1 class="display text-3xl">Dados pessoais</h1>
+<p class="mt-2 text-sm text-muted">E-mail de acesso: <strong>{{ user.email }}</strong></p>
+<form method="post" class="mt-8 grid max-w-2xl gap-5 sm:grid-cols-2" novalidate>{% csrf_token %}
+  {% include "partials/field.html" with field=form.full_name span="sm:col-span-2" %}
+  {% include "partials/field.html" with field=form.phone %}
+  {% include "partials/field.html" with field=form.cpf %}
+  {% include "partials/field.html" with field=form.birth_date %}
+  <div class="sm:col-span-2"><button class="btn btn-dark">Salvar</button></div>
+</form>
+{% endblock %}

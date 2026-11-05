@@ -1,0 +1,23 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ crud.title }}{% endblock %}
+{% block heading %}{{ crud.title }}{% endblock %}
+{% block content %}
+{% include "dashboard/_subnav.html" %}
+<a href="{% url 'dashboard:'|add:crud.slug|add:'_list' %}" class="kicker hover:text-fg">← {{ crud.title }}</a>
+<h1 class="display mt-2 text-3xl">{% if obj %}{{ obj }}{% else %}Novo(a) {{ crud.singular }}{% endif %}</h1>
+{% if crud.help %}<p class="help mt-3 max-w-3xl">{{ crud.help }}</p>{% endif %}
+<form method="post" enctype="multipart/form-data" class="panel mt-6 grid max-w-4xl gap-5 p-5 sm:grid-cols-2 sm:p-6" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="error sm:col-span-2">{{ form.non_field_errors }}</div>{% endif %}
+  {% for field in form %}
+    {% include "partials/field.html" with field=field span=field.field.widget.attrs.rows|yesno:"sm:col-span-2,," %}
+  {% endfor %}
+  <div class="flex flex-wrap gap-3 sm:col-span-2">
+    <button class="btn btn-dark">Salvar</button>
+    <a href="{% url 'dashboard:'|add:crud.slug|add:'_list' %}" class="btn btn-ghost">Cancelar</a>
+  </div>
+</form>
+{% if can_delete %}
+<form method="post" action="{% url 'dashboard:'|add:crud.slug|add:'_delete' obj.pk %}" class="mt-6" onsubmit="return confirm('Excluir definitivamente?')">{% csrf_token %}<button class="btn btn-danger btn-sm">Excluir</button></form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "accounts/base_account.html" %}{% load store %}
+{% block title %}Meus pedidos — {{ brand.store_name }}{% endblock %}
+{% block account_content %}
+<h1 class="display text-3xl">Meus pedidos</h1>
+{% if orders %}
+<div class="mt-6 overflow-x-auto">
+  <table class="table-clean min-w-[560px]">
+    <thead><tr><th>Pedido</th><th>Data</th><th>Status</th><th>Total</th><th></th></tr></thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td class="font-display font-bold">#{{ o.number }}</td>
+        <td>{{ o.created_at|date:"d/m/Y" }}</td>
+        <td>{% status_badge o.status o.get_status_display %}</td>
+        <td>{{ o.total|brl }}</td>
+        <td class="text-right"><a class="link" href="{{ o.get_absolute_url }}">Detalhes</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="grid-texture mt-6 border border-dashed border-line px-6 py-16 text-center">
+  <p class="display text-2xl">Nenhum pedido ainda.</p>
+  <a href="{% url 'catalog:shop' %}" class="btn btn-dark mt-6">Ver a loja</a>
+</div>
+{% endif %}
+{% endblock %}

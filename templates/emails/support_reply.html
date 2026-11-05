@@ -1,0 +1,7 @@
+<!doctype html><html lang="pt-BR"><body style="font-family:Arial,sans-serif;background:#F7F5F0;color:#171717;padding:24px">
+<div style="max-width:520px;margin:auto;background:#fff;border:1px solid #DEDEDA;padding:28px">
+<p style="text-transform:uppercase;letter-spacing:2px;font-weight:bold">{{ brand.store_name }}</p>
+<h1 style="font-size:20px">Re: {{ ticket.subject }}</h1>
+<p style="border-left:4px solid #C7FF3D;padding-left:12px">{{ ticket.staff_reply|linebreaksbr }}</p>
+<p><a href="{{ site_url }}{% url 'accounts:support' %}" style="color:#355CFF">Ver no site</a></p>
+</div></body></html>

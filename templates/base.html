@@ -1,0 +1,53 @@
+{% load static store %}<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script>
+    (function(){try{var p=localStorage.getItem("theme")||"system";var d=p==="dark"||(p==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();
+  </script>
+  <title>{% block title %}{{ brand.store_name }} — {{ brand.slogan }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ brand.seo_description }}{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}{{ site_url }}{{ request.path }}{% endblock %}">
+  <meta name="theme-color" content="#F7F5F0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta property="og:site_name" content="{{ brand.store_name }}">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}{{ brand.store_name }} — {{ brand.slogan }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ brand.seo_description }}{% endblock %}">
+  <meta property="og:url" content="{{ site_url }}{{ request.path }}">
+  {% block og_image %}{% if brand.og_image %}<meta property="og:image" content="{{ brand.og_image.url }}">{% endif %}{% endblock %}
+  <meta name="twitter:card" content="summary_large_image">
+  {% if brand.favicon %}<link rel="icon" href="{{ brand.favicon.url }}">{% else %}<link rel="icon" href="{% static 'images/favicon.svg' %}" type="image/svg+xml">{% endif %}
+  <link rel="preload" href="{% static 'fonts/space-grotesk-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{% static 'fonts/inter-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <style>:root{--c-lime:{{ brand_vars.lime }};--c-orange:{{ brand_vars.orange }};--c-blue:{{ brand_vars.blue }};}</style>
+  <script src="{% static 'js/app.js' %}" defer></script>
+  <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
+  <script src="{% static 'vendor/alpine.min.js' %}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen {% block body_class %}{% endblock %}" hx-headers='{"X-Requested-With": "XMLHttpRequest"}'>
+  <a href="#conteudo" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-lime focus:px-4 focus:py-2 focus:text-ink">Pular para o conteúdo</a>
+
+  {% block header %}{% include "partials/header.html" %}{% endblock %}
+
+  <div aria-live="polite" class="pointer-events-none fixed inset-x-0 top-[calc(var(--header-h)+12px)] z-50 flex flex-col items-center gap-2 px-4" id="toasts">
+    {% for message in messages %}
+      <div class="toast max-w-md animate-rise" data-autodismiss role="status">
+        <span class="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 {% if message.tags == 'error' %}bg-danger{% elif message.tags == 'warning' %}bg-orange{% else %}bg-lime{% endif %}"></span>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <main id="conteudo" class="{% block main_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block footer %}{% include "partials/footer.html" %}{% endblock %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

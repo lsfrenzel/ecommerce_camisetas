@@ -1,0 +1,9 @@
+{% load store %}
+{% if error %}
+  <p class="mt-1 flex items-center gap-2 text-sm font-semibold text-danger" role="alert">{% icon "alert" 16 %} {{ error }}</p>
+{% else %}
+  <div class="mt-1 flex items-center justify-between gap-3 border border-fg bg-surface p-3 animate-rise" role="status">
+    <p class="flex items-center gap-2 text-sm font-semibold"><span class="grid h-6 w-6 place-items-center bg-lime text-ink">{% icon "check" 14 %}</span> Adicionado ao carrinho</p>
+    <a href="{% url 'cart:detail' %}" class="font-display text-xs font-bold uppercase tracking-wider underline underline-offset-4">Ver carrinho</a>
+  </div>
+{% endif %}

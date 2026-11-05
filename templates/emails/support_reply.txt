@@ -1,0 +1,10 @@
+{% autoescape off %}Olá, {{ ticket.user.get_short_name }}!
+
+Respondemos sua solicitação "{{ ticket.subject }}":
+
+{{ ticket.staff_reply }}
+
+Acesse sua conta para ver o histórico: {{ site_url }}{% url 'accounts:support' %}
+
+{{ brand.store_name }}
+{% endautoescape %}

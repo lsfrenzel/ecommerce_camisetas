@@ -1,0 +1,26 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Histórico de estoque{% endblock %}
+{% block heading %}Estoque{% endblock %}
+{% block content %}
+<a href="{% url 'dashboard:inventory' %}" class="kicker hover:text-fg">← Estoque</a>
+<h1 class="display mt-2 text-3xl">Histórico de movimentações</h1>
+<form method="get" class="mt-6 flex flex-wrap gap-2">
+  <input name="sku" value="{{ request.GET.sku }}" class="input max-w-xs py-2" placeholder="SKU">
+  <select name="tipo" class="input max-w-[220px] py-2"><option value="">Todos os tipos</option>{% for k, v in kinds %}<option value="{{ k }}" {% if request.GET.tipo == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+  <button class="btn btn-outline btn-sm">Filtrar</button>
+  <button name="csv" value="1" class="btn btn-ghost btn-sm">Exportar CSV</button>
+</form>
+<div class="panel mt-4 overflow-x-auto">
+  <table class="table-clean min-w-[760px]">
+    <thead><tr><th class="pl-4">Data</th><th>SKU</th><th>Tipo</th><th class="text-right">Qtd.</th><th class="text-right">Estoque após</th><th>Motivo</th><th>Responsável</th></tr></thead>
+    <tbody>
+      {% for m in page %}
+      <tr><td class="pl-4 text-xs">{{ m.created_at|date:"d/m/Y H:i" }}</td><td class="font-mono text-xs">{{ m.variant.sku }}</td><td>{{ m.get_kind_display }}</td>
+        <td class="text-right font-semibold {% if m.quantity < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.quantity|stringformat:"+d" }}</td><td class="text-right">{{ m.stock_after }}</td>
+        <td>{{ m.reason }}{% if m.order %} · <a class="link" href="{% url 'dashboard:order_detail' m.order.number %}">#{{ m.order.number }}</a>{% endif %}</td><td class="text-xs">{{ m.user.email|default:"sistema" }}</td></tr>
+      {% empty %}<tr><td colspan="7" class="pl-4 text-muted">Nenhuma movimentação.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}
