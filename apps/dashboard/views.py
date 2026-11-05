@@ -29,7 +29,7 @@ from apps.shipping.models import Shipment
 from . import metrics
 from .forms import (BulkPriceForm, GenerateVariantsForm, MovementForm, OrderStatusForm, ProductForm,
                     ProductImageInline, ProductVariantInline, RoleAssignForm, ShipmentForm, StaffUserForm,
-                    ensure_groups, role_of)
+                    UserDataForm, ensure_groups, role_of)
 from .permissions import ROLE_PERMISSIONS, staff_required
 
 PRICE_FIELDS = ["price", "compare_at_price", "cost_price", "sale_price", "sale_starts_at", "sale_ends_at"]
@@ -380,16 +380,72 @@ def order_resolve_attention(request, number):
 
 
 # ----------------------------------------------------------------------------- Clientes
+USER_FILTERS = {
+    "clientes": ("Clientes", Q(is_staff=False, is_active=True)),
+    "equipe": ("Equipe", Q(is_staff=True)),
+    "bloqueados": ("Bloqueados / inativos", Q(is_active=False)),
+    "todos": ("Todos", Q()),
+}
+
+
+def send_password_link(request, user):
+    """Envia ao usuário um link seguro para definir/redefinir a senha (a equipe nunca vê a senha)."""
+    from django.conf import settings
+    from django.contrib.auth.forms import PasswordResetForm
+
+    from apps.content.models import BrandSettings
+
+    form = PasswordResetForm({"email": user.email})
+    if not form.is_valid():
+        return False
+    form.save(
+        request=request, use_https=request.is_secure(),
+        subject_template_name="emails/password_reset_subject.txt",
+        email_template_name="emails/password_reset.txt",
+        html_email_template_name="emails/password_reset.html",
+        extra_email_context={"brand": BrandSettings.load(), "site_url": settings.SITE_URL},
+    )
+    return True
+
+
 @staff_required("accounts.view_user")
 def customer_list(request):
-    qs = User.objects.filter(is_staff=False).select_related("profile").annotate(
+    tipo = request.GET.get("tipo", "clientes")
+    if tipo not in USER_FILTERS:
+        tipo = "clientes"
+    qs = User.objects.filter(USER_FILTERS[tipo][1]).select_related("profile").prefetch_related("groups").annotate(
         order_count=Count("orders", filter=Q(orders__status__in=PAID_STATUSES), distinct=True),
         spent=Sum("orders__total", filter=Q(orders__status__in=PAID_STATUSES)),
     ).order_by("-date_joined")
     q = request.GET.get("q", "").strip()
     if q:
         qs = qs.filter(Q(email__icontains=q) | Q(full_name__icontains=q) | Q(profile__phone__icontains=q))
-    return render(request, "dashboard/customers/list.html", {"page": _page(request, qs), "q": q, "section": "customers"})
+    page = _page(request, qs)
+    rows = [(u, role_of(u)) for u in page.object_list]
+    return render(request, "dashboard/customers/list.html", {
+        "page": page, "rows": rows, "q": q, "tipo": tipo, "filters": [(k, v[0]) for k, v in USER_FILTERS.items()],
+        "section": "customers"})
+
+
+@staff_required("accounts.add_user")
+def user_new(request):
+    import secrets
+
+    form = UserDataForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            # Senha aleatória descartada: o próprio usuário define a dele pelo link enviado por e-mail.
+            user = User.objects.create_user(email=form.cleaned_data["email"], password=secrets.token_urlsafe(32),
+                                            full_name=form.cleaned_data["full_name"].strip())
+            form.apply(user)
+            log_action(actor=request.user, action=AuditLog.Action.CREATE, obj=user, request=request,
+                       message="Usuário cadastrado pela equipe")
+        if request.POST.get("send_link") and send_password_link(request, user):
+            messages.success(request, f"Usuário criado. Enviamos a {user.email} um link para definir a senha.")
+        else:
+            messages.success(request, "Usuário criado. Envie o link de senha quando quiser, na página dele.")
+        return redirect("dashboard:customer_detail", pk=user.pk)
+    return render(request, "dashboard/customers/new.html", {"form": form, "section": "customers"})
 
 
 @staff_required("accounts.view_user")
@@ -397,12 +453,40 @@ def customer_detail(request, pk):
     customer = get_object_or_404(User.objects.select_related("profile"), pk=pk)
     orders = customer.orders.order_by("-created_at")
     spent = orders.filter(status__in=PAID_STATUSES).aggregate(v=Sum("total"))["v"] or Decimal("0")
+    data_form = UserDataForm(instance=customer, initial=UserDataForm.initial_for(customer))
     if request.method == "POST":
         if not request.user.has_perm("accounts.change_user"):
             raise PermissionDenied
-        if customer.is_staff and not request.user.is_superuser:
+        if (customer.is_staff or customer.is_superuser) and not request.user.is_superuser:
             raise PermissionDenied
         action = request.POST.get("action")
+        if action in ("block",) and customer == request.user:
+            messages.error(request, "Você não pode bloquear a própria conta.")
+            return redirect("dashboard:customer_detail", pk=pk)
+        if action == "edit":
+            data_form = UserDataForm(request.POST, instance=customer)
+            if data_form.is_valid():
+                changes = data_form.apply(customer)
+                if changes:
+                    log_action(actor=request.user, action=AuditLog.Action.UPDATE, obj=customer, request=request,
+                               changes=changes, message="Dados do usuário editados pela equipe")
+                messages.success(request, "Dados atualizados.")
+                return redirect("dashboard:customer_detail", pk=pk)
+            messages.error(request, "Corrija os erros nos dados do usuário.")
+            return render(request, "dashboard/customers/detail.html", {
+                "customer": customer, "orders": orders, "spent": spent, "section": "customers",
+                "data_form": data_form, "role": role_of(customer)})
+        if action == "send_reset":
+            if customer.is_active and send_password_link(request, customer):
+                log_action(actor=request.user, action=AuditLog.Action.UPDATE, obj=customer, request=request,
+                           message="Link de redefinição de senha enviado")
+                messages.success(request, f"Link para redefinir a senha enviado a {customer.email}.")
+            else:
+                messages.error(request, "Não foi possível enviar: a conta está bloqueada/inativa.")
+            return redirect("dashboard:customer_detail", pk=pk)
+        if action == "block" and not request.POST.get("reason", "").strip():
+            messages.error(request, "Informe a justificativa do bloqueio.")
+            return redirect("dashboard:customer_detail", pk=pk)
         if action == "block":
             customer.is_active = False
             customer.profile.blocked_reason = request.POST.get("reason", "")[:255]
@@ -422,7 +506,8 @@ def customer_detail(request, pk):
         customer.profile.save()
         return redirect("dashboard:customer_detail", pk=pk)
     return render(request, "dashboard/customers/detail.html", {
-        "customer": customer, "orders": orders, "spent": spent, "section": "customers"})
+        "customer": customer, "orders": orders, "spent": spent, "section": "customers",
+        "data_form": data_form, "role": role_of(customer)})
 
 
 # ----------------------------------------------------------------------------- Personalização

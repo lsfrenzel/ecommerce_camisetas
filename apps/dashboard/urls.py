@@ -27,6 +27,7 @@ urlpatterns = [
     path("pedidos/<str:number>/reconciliar/", views.order_reconcile, name="order_reconcile"),
     path("pedidos/<str:number>/resolver/", views.order_resolve_attention, name="order_resolve"),
     path("clientes/", views.customer_list, name="customers"),
+    path("clientes/novo/", views.user_new, name="user_new"),
     path("clientes/<int:pk>/", views.customer_detail, name="customer_detail"),
     path("personalizacoes/", views.personalization_list, name="personalizations"),
     path("personalizacoes/<uuid:public_id>/", views.personalization_detail, name="personalization_detail"),

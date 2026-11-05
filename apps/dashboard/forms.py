@@ -244,6 +244,72 @@ class StaffUserForm(forms.Form):
         return pwd
 
 
+class UserDataForm(forms.Form):
+    """Dados cadastrais de um usuário, editados pela equipe (a senha nunca é definida por aqui)."""
+
+    full_name = forms.CharField(label="Nome completo", max_length=150)
+    email = forms.EmailField(label="E-mail de acesso")
+    phone = forms.CharField(label="Telefone / WhatsApp", max_length=20, required=False)
+    cpf = forms.CharField(label="CPF", max_length=14, required=False)
+    birth_date = forms.DateField(label="Data de nascimento", required=False,
+                                 widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"))
+
+    def __init__(self, *args, instance=None, **kwargs):
+        self.instance = instance
+        super().__init__(*args, **kwargs)
+        self.fields["phone"].widget.attrs.update({"data-mask": "phone", "inputmode": "tel"})
+        self.fields["cpf"].widget.attrs.update({"data-mask": "999.999.999-99", "inputmode": "numeric"})
+        style(self)
+
+    @classmethod
+    def initial_for(cls, user):
+        p = user.profile
+        return {"full_name": user.full_name, "email": user.email, "phone": p.phone, "cpf": p.cpf,
+                "birth_date": p.birth_date}
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("Já existe outro usuário com este e-mail.")
+        return email
+
+    def clean_phone(self):
+        from apps.core.utils import validate_phone
+
+        phone = self.cleaned_data.get("phone", "")
+        if phone:
+            validate_phone(phone)
+        return phone
+
+    def clean_cpf(self):
+        from apps.core.utils import is_valid_cpf, only_digits
+
+        cpf = self.cleaned_data.get("cpf", "")
+        if cpf and not is_valid_cpf(cpf):
+            raise ValidationError("CPF inválido.")
+        return only_digits(cpf)
+
+    def apply(self, user):
+        """Grava os dados e devolve as alterações para auditoria (CPF mascarado)."""
+        d = self.cleaned_data
+        p = user.profile
+        before = {"full_name": user.full_name, "email": user.email, "phone": p.phone, "cpf": p.cpf,
+                  "birth_date": p.birth_date}
+        user.full_name, user.email = d["full_name"].strip(), d["email"]
+        p.phone, p.cpf, p.birth_date = d["phone"], d["cpf"], d["birth_date"]
+        user.save()
+        p.save()
+        changes = {}
+        for key, old in before.items():
+            new = d[key] if key not in ("full_name",) else user.full_name
+            if (old or "") != (new or ""):
+                changes[key] = ["***", "***"] if key == "cpf" else [old, new]
+        return changes
+
+
 class RoleAssignForm(forms.Form):
     role = forms.ChoiceField(label="Papel", choices=[("", "— Sem acesso ao painel (cliente) —")] + [(r, r) for r in ROLE_PERMISSIONS],
                              required=False)

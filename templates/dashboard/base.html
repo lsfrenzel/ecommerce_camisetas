@@ -29,7 +29,7 @@
       {% if perms.catalog.view_category %}{% include "dashboard/_nav_link.html" with url_name="dashboard:categorias_list" label="Catálogo" icon_name="file" key="catalog" %}{% endif %}
       {% if perms.promotions.view_coupon %}{% include "dashboard/_nav_link.html" with url_name="dashboard:promocoes_list" label="Preços e promoções" icon_name="tag" key="promotions" %}{% endif %}
       {% if perms.personalization.view_personalizationrequest %}{% include "dashboard/_nav_link.html" with url_name="dashboard:personalizations" label="Personalizações" icon_name="brush" key="personalization" %}{% endif %}
-      {% if perms.accounts.view_user %}{% include "dashboard/_nav_link.html" with url_name="dashboard:customers" label="Clientes" icon_name="users" key="customers" %}{% endif %}
+      {% if perms.accounts.view_user %}{% include "dashboard/_nav_link.html" with url_name="dashboard:customers" label="Usuários" icon_name="users" key="customers" %}{% endif %}
       {% if perms.orders.view_reports %}{% include "dashboard/_nav_link.html" with url_name="dashboard:reports" label="Relatórios" icon_name="chart" key="reports" %}{% endif %}
       <p class="kicker mb-1 mt-6 px-3 text-white/40">Loja</p>
       {% if perms.content.view_brandsettings %}{% include "dashboard/_nav_link.html" with url_name="dashboard:brand" label="Marca" icon_name="settings" key="brand" %}{% endif %}

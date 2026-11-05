@@ -1,19 +1,29 @@
 {% extends "dashboard/base.html" %}{% load store %}
-{% block title %}Clientes{% endblock %}
-{% block heading %}Clientes{% endblock %}
+{% block title %}Usuários{% endblock %}
+{% block heading %}Usuários{% endblock %}
 {% block content %}
-<h1 class="display text-3xl">Clientes</h1>
-<form method="get" class="mt-6 flex gap-2"><input name="q" value="{{ q }}" class="input max-w-sm py-2" placeholder="Nome, e-mail ou telefone"><button class="btn btn-outline btn-sm">Buscar</button></form>
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <h1 class="display text-3xl">Usuários</h1>
+  <div class="flex flex-wrap gap-2">
+    {% if perms.auth.change_group %}<a href="{% url 'dashboard:team' %}" class="btn btn-outline btn-sm">Equipe e acessos</a>{% endif %}
+    {% if perms.accounts.add_user %}<a href="{% url 'dashboard:user_new' %}" class="btn btn-dark btn-sm">{% icon "plus" 16 %} Novo usuário</a>{% endif %}
+  </div>
+</div>
+<nav class="mt-6 flex flex-wrap gap-1" aria-label="Filtrar usuários">
+  {% for key, label in filters %}<a href="?tipo={{ key }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="chip text-xs {% if key == tipo %}chip-active{% endif %}" {% if key == tipo %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+<form method="get" class="mt-4 flex gap-2"><input type="hidden" name="tipo" value="{{ tipo }}"><input name="q" value="{{ q }}" class="input max-w-sm py-2" placeholder="Nome, e-mail ou telefone"><button class="btn btn-outline btn-sm">Buscar</button></form>
 <div class="panel mt-4 overflow-x-auto">
-  <table class="table-clean min-w-[680px]">
-    <thead><tr><th class="pl-4">Cliente</th><th>Cadastro</th><th class="text-right">Pedidos pagos</th><th class="text-right">Total gasto</th><th>Situação</th><th></th></tr></thead>
+  <table class="table-clean min-w-[760px]">
+    <thead><tr><th class="pl-4">Usuário</th><th>Papel</th><th>Cadastro</th><th class="text-right">Pedidos pagos</th><th class="text-right">Total gasto</th><th>Situação</th><th></th></tr></thead>
     <tbody>
-      {% for c in page %}
-      <tr><td class="pl-4"><p class="font-semibold">{{ c.full_name }}</p><p class="text-xs text-muted">{{ c.email }}</p></td>
+      {% for c, role in rows %}
+      <tr><td class="pl-4"><p class="font-semibold">{{ c.full_name }}</p><p class="text-xs text-muted">{{ c.email }}{% if c.profile.phone %} · {{ c.profile.phone }}{% endif %}</p></td>
+        <td class="text-xs">{{ role }}</td>
         <td class="text-xs">{{ c.date_joined|date:"d/m/Y" }}</td><td class="text-right">{{ c.order_count }}</td><td class="text-right">{{ c.spent|default:0|brl }}</td>
         <td>{% if c.is_active %}<span class="badge badge-success">Ativa</span>{% else %}<span class="badge badge-danger">Bloqueada</span>{% endif %}</td>
         <td class="pr-4 text-right"><a class="link" href="{% url 'dashboard:customer_detail' c.pk %}">Abrir</a></td></tr>
-      {% empty %}<tr><td colspan="6" class="pl-4 text-muted">Nenhum cliente.</td></tr>{% endfor %}
+      {% empty %}<tr><td colspan="7" class="pl-4 text-muted">Nenhum usuário encontrado.</td></tr>{% endfor %}
     </tbody>
   </table>
 </div>

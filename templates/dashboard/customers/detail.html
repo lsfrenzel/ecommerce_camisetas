@@ -1,46 +1,91 @@
 {% extends "dashboard/base.html" %}{% load store %}
 {% block title %}{{ customer.full_name }}{% endblock %}
-{% block heading %}Clientes{% endblock %}
+{% block heading %}Usuários{% endblock %}
 {% block content %}
-<a href="{% url 'dashboard:customers' %}" class="kicker hover:text-fg">← Clientes</a>
+<a href="{% url 'dashboard:customers' %}" class="kicker hover:text-fg">← Usuários</a>
 <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
-  <div><h1 class="display text-3xl">{{ customer.full_name }}</h1><p class="text-sm text-muted">{{ customer.email }} · cliente desde {{ customer.date_joined|date:"d/m/Y" }}</p></div>
-  {% if customer.is_active %}<span class="badge badge-success">Conta ativa</span>{% else %}<span class="badge badge-danger">Bloqueada: {{ customer.profile.blocked_reason }}</span>{% endif %}
+  <div>
+    <h1 class="display text-3xl">{{ customer.full_name }}</h1>
+    <p class="text-sm text-muted">{{ customer.email }} · cadastro em {{ customer.date_joined|date:"d/m/Y" }}{% if customer.last_login %} · último acesso {{ customer.last_login|date:"d/m/Y H:i" }}{% endif %}</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="badge badge-neutral">{{ role }}</span>
+    {% if customer.is_active %}<span class="badge badge-success">Conta ativa</span>{% else %}<span class="badge badge-danger">Bloqueada{% if customer.profile.blocked_reason %}: {{ customer.profile.blocked_reason }}{% endif %}</span>{% endif %}
+  </div>
 </div>
+
 <div class="mt-6 grid gap-6 xl:grid-cols-3">
-  <section class="panel p-5 xl:col-span-2">
-    <div class="flex items-center justify-between"><h2 class="eyebrow">Histórico de pedidos</h2><p class="text-sm">Total gasto: <strong>{{ spent|brl }}</strong></p></div>
-    <div class="mt-3 overflow-x-auto"><table class="table-clean min-w-[480px]">
-      <thead><tr><th>Pedido</th><th>Data</th><th>Status</th><th class="text-right">Total</th></tr></thead>
-      <tbody>{% for o in orders %}<tr><td><a class="font-bold hover:underline" href="{% url 'dashboard:order_detail' o.number %}">#{{ o.number }}</a></td><td>{{ o.created_at|date:"d/m/Y" }}</td><td>{% status_badge o.status o.get_status_display %}</td><td class="text-right">{{ o.total|brl }}</td></tr>
-      {% empty %}<tr><td colspan="4" class="text-muted">Sem pedidos.</td></tr>{% endfor %}</tbody>
-    </table></div>
-  </section>
-  <div class="space-y-6">
-    <section class="panel p-5 text-sm">
-      <h2 class="eyebrow">Dados</h2>
-      <dl class="mt-3 grid grid-cols-[110px_1fr] gap-y-1.5">
+  <div class="space-y-6 xl:col-span-2">
+    <section class="panel p-5">
+      <h2 class="eyebrow">Dados cadastrais</h2>
+      {% if perms.accounts.change_user and not customer.is_staff or perms.accounts.change_user and user.is_superuser %}
+      <form method="post" class="mt-4 grid gap-5 sm:grid-cols-2" novalidate>
+        {% csrf_token %}
+        {% if data_form.non_field_errors %}<div class="error sm:col-span-2">{{ data_form.non_field_errors }}</div>{% endif %}
+        {% include "partials/field.html" with field=data_form.full_name span="sm:col-span-2" %}
+        {% include "partials/field.html" with field=data_form.email span="sm:col-span-2" %}
+        {% include "partials/field.html" with field=data_form.phone %}
+        {% include "partials/field.html" with field=data_form.cpf %}
+        {% include "partials/field.html" with field=data_form.birth_date %}
+        <div class="sm:col-span-2"><button name="action" value="edit" class="btn btn-dark btn-sm">Salvar dados</button></div>
+      </form>
+      {% else %}
+      <dl class="mt-3 grid grid-cols-[130px_1fr] gap-y-1.5 text-sm">
         <dt class="text-muted">Telefone</dt><dd>{{ customer.profile.phone|default:"—" }}</dd>
         <dt class="text-muted">CPF</dt><dd>{% if customer.profile.cpf %}***.***.{{ customer.profile.cpf|slice:"6:9" }}-**{% else %}—{% endif %}</dd>
+        <dt class="text-muted">Nascimento</dt><dd>{{ customer.profile.birth_date|date:"d/m/Y"|default:"—" }}</dd>
+      </dl>
+      {% if customer.is_staff and not user.is_superuser %}<p class="help mt-3">Dados de membros da equipe só podem ser alterados por superusuários.</p>{% endif %}
+      {% endif %}
+    </section>
+
+    <section class="panel p-5">
+      <div class="flex items-center justify-between"><h2 class="eyebrow">Histórico de pedidos</h2><p class="text-sm">Total gasto: <strong>{{ spent|brl }}</strong></p></div>
+      <div class="mt-3 overflow-x-auto"><table class="table-clean min-w-[480px]">
+        <thead><tr><th>Pedido</th><th>Data</th><th>Status</th><th class="text-right">Total</th></tr></thead>
+        <tbody>{% for o in orders %}<tr><td><a class="font-bold hover:underline" href="{% url 'dashboard:order_detail' o.number %}">#{{ o.number }}</a></td><td>{{ o.created_at|date:"d/m/Y" }}</td><td>{% status_badge o.status o.get_status_display %}</td><td class="text-right">{{ o.total|brl }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="text-muted">Sem pedidos.</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <div class="space-y-6">
+    <section class="panel p-5 text-sm">
+      <h2 class="eyebrow">Resumo</h2>
+      <dl class="mt-3 grid grid-cols-[110px_1fr] gap-y-1.5">
         <dt class="text-muted">Marketing</dt><dd>{{ customer.profile.marketing_opt_in|yesno:"Consentiu,Não consentiu" }}</dd>
         <dt class="text-muted">Endereços</dt><dd>{{ customer.addresses.count }}</dd>
+        <dt class="text-muted">Papel</dt><dd>{{ role }}{% if perms.auth.change_group and not customer.is_superuser %} · <a class="link" href="{% url 'dashboard:team' %}">alterar</a>{% endif %}</dd>
       </dl>
+      <p class="help mt-3">O consentimento de marketing só pode ser alterado pelo próprio usuário (LGPD).</p>
     </section>
-    {% if perms.accounts.change_user %}
+
+    {% if perms.accounts.change_user and not customer.is_staff or perms.accounts.change_user and user.is_superuser %}
+    <form method="post" class="panel space-y-3 p-5">{% csrf_token %}
+      <h2 class="eyebrow">Senha</h2>
+      <p class="text-sm text-muted">Envia ao e-mail do usuário um link seguro (válido por tempo limitado) para criar uma nova senha. A equipe nunca vê nem define a senha.</p>
+      <button name="action" value="send_reset" class="btn btn-outline btn-sm" {% if not customer.is_active %}disabled{% endif %}>Enviar link de senha</button>
+    </form>
+
     <form method="post" class="panel space-y-3 p-5">{% csrf_token %}
       <h2 class="eyebrow">Observações internas</h2>
       <textarea name="staff_notes" rows="3" class="input">{{ customer.profile.staff_notes }}</textarea>
       <button name="action" value="notes" class="btn btn-outline btn-sm">Salvar</button>
     </form>
+
+    {% if customer != user %}
     <form method="post" class="panel space-y-3 p-5" onsubmit="return confirm('Confirmar?')">{% csrf_token %}
       {% if customer.is_active %}
         <h2 class="eyebrow text-danger">Bloquear conta</h2>
+        <p class="text-sm text-muted">O usuário deixa de conseguir entrar. Pedidos e histórico são mantidos.</p>
         <input name="reason" class="input py-2" placeholder="Justificativa (obrigatória)" required>
         <button name="action" value="block" class="btn btn-danger btn-sm">Bloquear</button>
       {% else %}
+        <h2 class="eyebrow">Conta bloqueada</h2>
         <button name="action" value="unblock" class="btn btn-outline btn-sm">Desbloquear conta</button>
       {% endif %}
     </form>
+    {% endif %}
     {% endif %}
   </div>
 </div>

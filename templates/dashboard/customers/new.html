@@ -1,0 +1,19 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Novo usuário{% endblock %}
+{% block heading %}Usuários{% endblock %}
+{% block content %}
+<a href="{% url 'dashboard:customers' %}" class="kicker hover:text-fg">← Usuários</a>
+<h1 class="display mt-2 text-3xl">Novo usuário</h1>
+<p class="help mt-2 max-w-2xl">Cadastre clientes atendidos por WhatsApp ou na loja física. A equipe nunca define nem vê a senha: o próprio cliente cria a dele pelo link enviado por e-mail. Para dar acesso ao painel, use <a class="link" href="{% url 'dashboard:team' %}">Equipe e acessos</a>.</p>
+<form method="post" class="panel mt-6 grid max-w-3xl gap-5 p-5 sm:grid-cols-2 sm:p-6" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="error sm:col-span-2">{{ form.non_field_errors }}</div>{% endif %}
+  {% include "partials/field.html" with field=form.full_name span="sm:col-span-2" %}
+  {% include "partials/field.html" with field=form.email span="sm:col-span-2" %}
+  {% include "partials/field.html" with field=form.phone %}
+  {% include "partials/field.html" with field=form.cpf %}
+  {% include "partials/field.html" with field=form.birth_date %}
+  <label class="flex items-start gap-3 text-sm sm:col-span-2"><input type="checkbox" name="send_link" value="1" class="checkbox mt-0.5" checked> Enviar agora o e-mail para o usuário criar a senha</label>
+  <div class="flex gap-3 sm:col-span-2"><button class="btn btn-dark">Cadastrar</button><a href="{% url 'dashboard:customers' %}" class="btn btn-ghost">Cancelar</a></div>
+</form>
+{% endblock %}
