@@ -151,7 +151,14 @@ O disco do container no Railway é efêmero. Configure um bucket S3-compatible:
    inacessível ou houver migração pendente — assim um deploy com banco desatualizado não entra no ar.
    Se o serviço tiver um *Custom Start Command* ou *Pre-deploy Command* definido no painel do Railway, remova-o
    para usar o do `railway.json`.
-6. Crie o primeiro administrador: `railway run python manage.py createsuperuser` (ou pelo shell do serviço).
+6. Crie o primeiro administrador — escolha uma opção:
+   - **Por variáveis (sem terminal):** cadastre `DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_PASSWORD` e
+     (opcional) `DJANGO_SUPERUSER_FULL_NAME` no serviço web e faça o deploy. O `start.sh` cria o superusuário se
+     ele ainda não existir; nunca altera um usuário existente. Depois do primeiro acesso, **apague
+     `DJANGO_SUPERUSER_PASSWORD`** das variáveis.
+   - **Pelo terminal do container:** `railway ssh` e depois `python manage.py createsuperuser`.
+     (Não use `railway run`: ele executa no seu computador, que não acessa o endereço interno do banco.)
+   Acesse `/conta/entrar/` com o e-mail e a senha; o painel fica em `/painel/`.
 7. **Domínio próprio**: Settings → Networking → Custom Domain; crie o CNAME indicado no seu DNS e inclua o domínio em
    `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS` e `SITE_URL`. HTTPS é emitido automaticamente.
 8. **Cron**: crie um segundo serviço do mesmo repositório com *Cron Schedule* `*/10 * * * *` e start command
